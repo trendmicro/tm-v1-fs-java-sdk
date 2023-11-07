@@ -1,0 +1,2 @@
+Trend Vision One File Security Java SDK
+Copyright 2023 Trend Micro Inc.
