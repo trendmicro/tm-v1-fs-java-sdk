@@ -7,8 +7,8 @@ This guide shows how to set up your dev environment and project before using the
 ## Prerequisites
 
 - Have Java 8 and above installed in your dev/build environment.
-- Trend Vision One account with a chosen region - for more information, see the [Trend Visioin One document](https://docs.trendmicro.com/en-us/enterprise/trend-micro-xdr-help/Home).
-- A Trend Vision One API key - for more information, see the [Trend Vision One API key documentation](https://docs.trendmicro.com/en-us/enterprise/trend-vision-one/administrative-setti/accountspartfoundati/api-keys.aspx).
+- Trend Vision One account with a chosen region - for more information, see the [Trend Vision One document](https://docs.trendmicro.com/en-us/enterprise/trend-micro-xdr-help/Home).
+- A Trend Vision One API key with proper role - for more information, see the [Trend Vision One API key documentation](https://docs.trendmicro.com/en-us/enterprise/trend-vision-one/administrative-setti/accountspartfoundati/api-keys.aspx).
 
 ## Download
 
@@ -23,26 +23,20 @@ Download the jar from [Maven Central Repository](https://mvnrepository.com/repos
 ```
 ## Obtain an API Key
 
-The FS SDK requires a valid API Key stored in the environment variable. It can accept Trend Vision One API keys. Please add the API Key associated with the Trend Vision One region that you wish to call as an environment variable named
+The FS SDK requires a valid API Key provided as parameter to the SDK client object. It can accept Trend Vision One API keys. 
 
-Example:
+When obtaining the API Key, ensure that the API Key is associated with the region that you plan to use. It is important to note that Trend Vision One API Keys are associated with different regions, please refer to the region flag below to obtain a better understanding of the valid regions associated with the respective API Key.
 
-```
-export TMFS_API_KEY=<your_vision_one_api_key>
-```
-
-When obtaining the API Key, ensure that the API Key is associated with the region that you plan to use. It is important to note that Trend Vision One API Keys are associated with different regions, please refer to the region flag below to obtain a better understanding of the valid regions associated with the respective API Key
-
-If you plan on using a Trend Vision One region, be sure to use the --region flag when running program with FS SDK to specify the region of that API key and to ensure you have proper authorization. The list of supported Trend Vision One regions can be found under the region flag
+If you plan on using a Trend Vision One region, be sure to pass in region parameter when running custom program with FS SDK to specify the region of that API key and to ensure you have proper authorization. The list of supported Trend Vision One regions can be found at API Reference section below.
 
 1. Login to the Trend Vision One.
 2. Create a new Trend Vision One API key:
 
 * Navigate to the Trend Vision One User Roles page.
-* Verify that there is a role with the "Run artifact scan" permissions enabled. If not, create a role by clicking on "Add Role" and "Save" once finished.
-* Directly configure a new key on the Trend Vision One API Keys page, using the role which contains the "Run artifacts scan" permission. It is advised to set an expiry time for the API key and make a record of it for future reference.
+* Verify that there is a role with the "Run file scan via SDK" permissions enabled. If not, create a role by clicking on "Add Role" and "Save" once finished.
+* Directly configure a new key on the Trend Vision One API Keys page, using the role which contains the "Run file scan via SDK" permission. It is advised to set an expiry time for the API key and make a record of it for future reference.
 
-You can manage these keys from the Trend Vision One API Keys Page
+You can manage these keys from the Trend Vision One API Keys Page.
 
 ## Using FS Java SDK
 
