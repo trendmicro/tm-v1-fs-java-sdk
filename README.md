@@ -1,8 +1,8 @@
 # Trend Vision One File Security Java SDK User Guide
 
-The Trend Vision One File Security (FS) Java SDK allows developers to build applications that interface with cloud-based Trend Vision One FS anti-malware file scanning service, so data and artifacts handled by the applications can be scanned to determine whether they are malicious or not.
+The Trend Vision One File Security Java SDK empowers developers to craft applications seamlessly integrating with the cloud-based Trend Vision One anti-malware file scanning service. This ensures a thorough scan of data and artifacts within the applications, identifying potential malicious elements.
 
-This guide shows how to set up your dev environment and project before using the FS Java SDK.
+This guide outlines the steps to establish your development environment and configure your project, laying the foundation for utilizing the File Security Java SDK effectively.
 
 ## Prerequisites
 
@@ -23,11 +23,11 @@ Download the jar from [Maven Central Repository](https://mvnrepository.com/repos
 ```
 ## Obtain an API Key
 
-The FS SDK requires a valid API Key provided as parameter to the SDK client object. It can accept Trend Vision One API keys. 
+The File Security SDK requires a valid API Key provided as parameter to the SDK client object. It can accept Trend Vision One API keys. 
 
 When obtaining the API Key, ensure that the API Key is associated with the region that you plan to use. It is important to note that Trend Vision One API Keys are associated with different regions, please refer to the region flag below to obtain a better understanding of the valid regions associated with the respective API Key.
 
-If you plan on using a Trend Vision One region, be sure to pass in region parameter when running custom program with FS SDK to specify the region of that API key and to ensure you have proper authorization. The list of supported Trend Vision One regions can be found at API Reference section below.
+If you plan on using a Trend Vision One region, be sure to pass in region parameter when running custom program with File Security SDK to specify the region of that API key and to ensure you have proper authorization. The list of supported Trend Vision One regions can be found at API Reference section below.
 
 1. Login to the Trend Vision One.
 2. Create a new Trend Vision One API key:
@@ -38,9 +38,9 @@ If you plan on using a Trend Vision One region, be sure to pass in region parame
 
 You can manage these keys from the Trend Vision One API Keys Page.
 
-## Using FS Java SDK
+## Using File Security Java SDK
 
-Using FS Java SDK to scan for malwares involves the following basic steps:
+Using File Security Java SDK to scan for malware involves the following basic steps:
 
 1. Creating an AMaaS Client object by specifying preferred Vision One region where scanning should be done and a valid API key.
 2. Invoking file scan or buffer scan method to scan the target data.
