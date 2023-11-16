@@ -13,20 +13,16 @@ import io.grpc.Status;
 final class AMaasCallCredentials extends CallCredentials {
     private String token;
     private AMaasConstants.TokenType tokenType;
+    private String appName;
 
     public AMaasConstants.TokenType getTokenType() {
         return tokenType;
     }
 
-    AMaasCallCredentials(String token) {
+    AMaasCallCredentials(String token, String appName) {
         this.token = token;
-        Pattern p = Pattern.compile("ey[^.]+.ey[^.]+.ey[^.]+");
-        Matcher m = p.matcher(token);
-        if (m.matches()) {
-            this.tokenType = AMaasConstants.TokenType.AUTH_TYPE_BEARER;
-        } else {
-            this.tokenType = AMaasConstants.TokenType.AUTH_TYPE_APIKEY;
-        }
+        this.appName = appName;
+        this.tokenType  = AMaasConstants.TokenType.AUTH_TYPE_APIKEY;
     }
 
     @Override
@@ -37,18 +33,8 @@ final class AMaasCallCredentials extends CallCredentials {
         executor.execute(() -> {
             try {
                 Metadata headers = new Metadata();
-                String tokenTypeStr = "";
-                switch (this.tokenType) {
-                    case AUTH_TYPE_BEARER: {
-                        tokenTypeStr = "Bearer ";
-                        break;
-                    }
-                    case AUTH_TYPE_APIKEY: {
-                        tokenTypeStr = "ApiKey ";
-                        break;
-                    }
-                }
-                headers.put(AMaasConstants.META_DATA_KEY, tokenTypeStr + token);
+                headers.put(AMaasConstants.META_DATA_KEY, "ApiKey " + token);
+                headers.put(AMaasConstants.META_APP_KEY, this.appName);
                 metadataApplier.apply(headers);
             } catch (Throwable e) {
                 metadataApplier.fail(Status.UNAUTHENTICATED.withCause(e));

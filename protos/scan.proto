@@ -26,6 +26,7 @@ message C2S {
   bool trendx = 6;
   string file_sha1 = 7;
   string file_sha256 = 8;
+  repeated string tags = 9;
 }
 
 enum Command {

@@ -1,16 +1,18 @@
 package com.trend.cloudone.amaas;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * An file type implementation of the AMaasRedaer interface.
+ * An file type implementation of the AMaasRedaer interface extends from the base implementation.
  */
-final class AMaasFileReader implements AMaasReader {
+final class AMaasFileReader extends AMaasBaseReader {
     private static final Logger logger = Logger.getLogger(AMaasClient.class.getName());
     private RandomAccessFile randomFile;
     private String fileName;
@@ -27,11 +29,30 @@ final class AMaasFileReader implements AMaasReader {
                 throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_FILE_NO_PERMISSION, this.fileName);
             }
             this.fileSize = targetFile.length();
+            
+            MessageDigest md = MessageDigest.getInstance("SHA1");
+            MessageDigest md256 = MessageDigest.getInstance("SHA-256");
+            try (FileInputStream is = new FileInputStream(targetFile)) {
+                byte[] bytesBuffer = new byte[1024];
+                int bytesRead = -1;
+ 
+                while ((bytesRead = is.read(bytesBuffer)) != -1) {
+                    md.update(bytesBuffer, 0, bytesRead);
+                    md256.update(bytesBuffer, 0, bytesRead);
+                }
+                this.sha1 = md.digest();
+                this.sha256 = md256.digest();
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
+
             this.randomFile = new RandomAccessFile(fileName, "r");
-        } catch (FileNotFoundException err) {
+        } catch (IOException err) {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_FILE_NOT_FOUND, this.fileName);
         } catch (SecurityException err) {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_FILE_NO_PERMISSION, this.fileName);
+        } catch (NoSuchAlgorithmException err) {
+            // this exception is not possible as the algorithms are hard coded.
         }
     }
 

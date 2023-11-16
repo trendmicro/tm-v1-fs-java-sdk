@@ -4,12 +4,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.trend</groupId>
-  <artifactId>cloudone-vsapi-sdk</artifactId>
+  <artifactId>file-security-java-sdk</artifactId>
   <version>__PACKAGE_VERSION__</version>
 
-  <name>cloudone-vsapi-sdk</name>
-  <url>https://github.com/trendmicro/cloudone-antimalware-java-sdk</url>
-  <description>Java SDK for Antimalware as a Service</description>
+  <name>file-security-java-sdk</name>
+  <url>https://github.com/trendmicro/tm-v1-fs-java-sdk</url>
+  <description>Trend Vision One File Security Java SDK</description>
 
   <licenses>
     <license>
@@ -26,9 +26,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/trendmicro/cloudone-antimalware-java-sdk.git</connection>
-    <developerConnection>scm:git:ssh://github.com:trendmicro/cloudone-antimalware-java-sdk.git</developerConnection>
-    <url>https://github.com/trendmicro/cloudone-antimalware-java-sdk</url>
+    <connection>scm:git:git://github.com/trendmicro/tm-v1-fs-java-sdk.git</connection>
+    <developerConnection>scm:git:ssh://github.com:trendmicro/tm-v1-fs-java-sdk.git</developerConnection>
+    <url>https://github.com/trendmicro/tm-v1-fs-java-sdk</url>
   </scm>
 
   <distributionManagement>

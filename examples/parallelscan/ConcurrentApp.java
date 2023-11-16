@@ -161,7 +161,7 @@ public class ConcurrentApp {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
         
-            AMaasClient client = new AMaasClient(region, apikey, timeout, true);
+            AMaasClient client = new AMaasClient(region, apikey, timeout);
             String[] listOfFiles = listFiles(pathName);
             long totalStartTs = System.currentTimeMillis();
             scanFilesInParallel(client, listOfFiles, timeout);

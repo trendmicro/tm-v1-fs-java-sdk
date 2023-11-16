@@ -17,7 +17,7 @@ public enum AMaasErrorCode {
     /**
      * Incorrect region is given.
      */
-    MSG_ID_ERR_INVALID_REGION("MSG_ID_ERR_INVALID_REGION", "%s is not a supported region."),
+    MSG_ID_ERR_INVALID_REGION("MSG_ID_ERR_INVALID_REGION", "%s is not a supported region, region value should be one of %s"),
     
     /**
     * Cloudone credetial is not given.
@@ -37,7 +37,23 @@ public enum AMaasErrorCode {
     /**
      * Java SDK client received an unexpected interrupt.
      */
-    MSG_ID_ERR_UNEXPECTED_INTERRUPT("MSG_ID_ERR_UNEXPECTED_INTERRUPT", "Unexpected interrupt encountered.");
+    MSG_ID_ERR_UNEXPECTED_INTERRUPT("MSG_ID_ERR_UNEXPECTED_INTERRUPT", "Unexpected interrupt encountered."),
+
+    /**
+     * Java SDK client received an unexpected interrupt.
+     */
+    MSG_ID_ERR_MAX_NUMBER_OF_TAGS("MSG_ID_ERR_MAX_NUMBER_OF_TAGS", "Exceeded maximum number of tags: %d"),
+
+    /**
+     * Java SDK client received an unexpected interrupt.
+     */
+    MSG_ID_ERR_LENGTH_OF_TAG("MSG_ID_ERR_LENGTH_OF_TAG", "Tag length must be between 1 and %d: %s."),
+
+    /**
+     * Java SDK client has an unexpected interrupt.
+     */
+    MSG_ID_ERR_UNEXPECTED("MSG_ID_ERR_UNEXPECTED", "Unexpected error encountered.");
+
 
     private final String errorCode;
     private final String message;

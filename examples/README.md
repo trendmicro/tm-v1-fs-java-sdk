@@ -40,8 +40,8 @@ There are 4 examples under the following sub-folders:
 
    ```sh
    -f a file or a directory to be scanned
-   -k customer Vision One API key or bearer authentication token
-   -r region where the CouldOne key/token was applied. eg, us-east-1
+   -k customer Vision One API key
+   -r region where the Vision One API key was obtained. eg, us-east-1
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
    ```
 
@@ -55,8 +55,8 @@ There are 4 examples under the following sub-folders:
 
    ```sh
    -f a file or a directory to be scanned
-   -k customer Vision One API key or bearer authentication token
-   -r region where the CouldOne key/token was applied. eg, us-east-1
+   -k customer Vision One API key
+   -r region where the Vision One API key was obtained. eg, us-east-1
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 secsonds.
    ```
 
@@ -72,8 +72,8 @@ There are 4 examples under the following sub-folders:
    -a target AWS region
    -b target AWS S3 bucket name
    -f target AWS S3 object key to be scanned
-   -k customer Vision One API key or bearer authentication token
-   -r region where the CouldOne key/token was applied. eg, us-east-1
+   -k customer Vision One API key
+   -r region where the Vision One API key was obtained. eg, us-east-1
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
    ```
 
