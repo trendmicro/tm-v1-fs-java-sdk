@@ -143,10 +143,11 @@ public class S3Lambda implements RequestHandler<Object, String> {
             }
 
             if (keyList == null || keyList.isEmpty()) {
+                info("No S3 object found in the S3 bucket folder");
                 return "";
             }
             
-            AMaasClient client = new AMaasClient(region, apikey, timeout, true);
+            AMaasClient client = new AMaasClient(region, apikey, timeout);
             long totalStartTs = System.currentTimeMillis();
             
             sequentialScan(client, s3client, bucketName, keyList);

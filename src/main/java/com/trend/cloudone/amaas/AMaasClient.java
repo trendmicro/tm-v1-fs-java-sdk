@@ -1,6 +1,7 @@
 package com.trend.cloudone.amaas;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -24,6 +25,8 @@ import com.trend.cloudone.amaas.scan.ScanOuterClass.Stage;
 public class AMaasClient {
     private static final Logger logger = Logger.getLogger(AMaasClient.class.getName());
     private static final long  DEFAULT_SCAN_TIMEOUT = 180;
+    private static final int MAX_NUM_OF_TAGS = 8;
+    private static final int MAX_LENGTH_OF_TAG = 63;
 
     private ManagedChannel channel;
     private ScanGrpc.ScanStub asyncStub;
@@ -31,9 +34,8 @@ public class AMaasClient {
     private long timeoutSecs = DEFAULT_SCAN_TIMEOUT; // 3 minutes
 
     
-
      /**
-     * AMaaSClient constructor. The enabledTLS is default to true.
+     * AMaaSClient constructor. The enabledTLS is default to true and the appName is default to V1FS.
      * @param region region you obtained your api key
      * @param apiKey api key to be used
      * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
@@ -41,7 +43,7 @@ public class AMaasClient {
      *
      */
     public AMaasClient(String region, String apiKey, long timeoutInSecs) throws AMaasException {
-        this(region, apiKey, timeoutInSecs, true);
+        this(region, apiKey, timeoutInSecs, true, AMaasConstants.V1FS_APP);
     }
 
     /**
@@ -50,13 +52,14 @@ public class AMaasClient {
      * @param apiKey api key to be used
      * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
      * @param enabledTLS boolean flag ro enable or disable TLS
+     * @param appName application name to use.
      * @throws AMaasException if an exception is detected, it will convert to AMassException.
      *
      */
-    public AMaasClient(String region, String apiKey, long timeoutInSecs, boolean enabledTLS) throws AMaasException {
+    public AMaasClient(String region, String apiKey, long timeoutInSecs, boolean enabledTLS, String appName) throws AMaasException {
         String target = this.identifyHostAddr(region);
         if (target == null || target == "") {
-            throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION, region);
+            throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION, region, AMaasRegion.getAllRegionsAsString());
         }
         if (enabledTLS) {
             log(Level.FINE, "Using prod grpc service {0}", target);
@@ -66,7 +69,7 @@ public class AMaasClient {
             this.channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
         }
         if (apiKey != null) {
-            this.cred = new AMaasCallCredentials(apiKey);
+            this.cred = new AMaasCallCredentials(apiKey, appName);
         } else {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_MISSING_AUTH);
         }
@@ -89,7 +92,7 @@ public class AMaasClient {
         // overwrite region setting with host setting
         String target = System.getenv("TM_AM_SERVER_ADDR");
         if (target==null||target=="") {
-            target = AMaasConstants.getHostForRegion(region);
+            target = AMaasRegion.getServiceFqdn(region);
         }
         return target;
     }
@@ -195,14 +198,29 @@ public class AMaasClient {
         }
     }
 
+    static AMaasException getTagListErrors(String[] tagList) {
+        AMaasException except = null;
+        if (tagList.length > MAX_NUM_OF_TAGS) {
+            except = new AMaasException(AMaasErrorCode.MSG_ID_ERR_MAX_NUMBER_OF_TAGS, MAX_NUM_OF_TAGS);
+        }
+        for (String tag: tagList) {
+            if (tag == null || tag == "" || (tag.length() > MAX_LENGTH_OF_TAG)) {
+                except = new AMaasException(AMaasErrorCode.MSG_ID_ERR_LENGTH_OF_TAG, MAX_LENGTH_OF_TAG, tag);
+                break;
+            }
+        }
+        return except;
+    }
+
     /*
     * Private method to scan a AMaasReader and return the scanned result
     *
     * @param reader AMaasReader to be scanned.
+    * @param tagList List of tags
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    private String scanRun(AMaasReader reader) throws AMaasException {
+    private String scanRun(AMaasReader reader, String[] tagList) throws AMaasException {
        
         long fileSize = reader.getLength();
 
@@ -212,7 +230,19 @@ public class AMaasClient {
         // initialize the callback context before proceeding
         serverCallback.setConext(requestObserver, reader);
 
-        ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int)fileSize).setOffset(0).build();
+        String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
+        String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
+
+        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int)fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str);
+        if (tagList != null) {
+            AMaasException except = getTagListErrors(tagList);
+            if (except != null) {
+                throw except;
+            }
+            builder.addAllTags(Arrays.asList(tagList));
+        }
+        ScanOuterClass.C2S request = builder.build();
+
         requestObserver.onNext(request);
 
         String scanResult = serverCallback.waitTilExit();
@@ -230,8 +260,20 @@ public class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanFile(String fileName) throws AMaasException {
+        return this.scanFile(fileName, null);
+    }
+
+    /**
+    * Scan a file and return the scanned result
+    *
+    * @param fileName Full path of a file to be scanned.
+    * @param tagList List of tags
+    * @return String the scanned result in JSON format.
+    * @throws AMaasException if an exception is detected, it will convert to AMassException.
+    */
+    public String scanFile(String fileName, String[] tagList) throws AMaasException {
         AMaasFileReader fileReader = new AMaasFileReader(fileName);
-        return this.scanRun(fileReader);
+        return this.scanRun(fileReader, tagList);
     }
 
     /**
@@ -243,7 +285,20 @@ public class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanBuffer(byte[] buffer, String identifier) throws AMaasException {
+        return this.scanBuffer(buffer, identifier, null);
+    }
+
+    /**
+    * Scan a buffer and return the scanned result
+    *
+    * @param buffer the buffer to be scanned
+    * @param identifier A unique name to identify the buffer.
+    * @param tagList List of tags
+    * @return String the scanned result in JSON format.
+    * @throws AMaasException if an exception is detected, it will convert to AMassException.
+    */
+    public String scanBuffer(byte[] buffer, String identifier, String[] tagList) throws AMaasException {
         AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
-        return this.scanRun(bufReader);
+        return this.scanRun(bufReader, tagList);
     }
 }

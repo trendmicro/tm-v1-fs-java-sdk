@@ -102,10 +102,10 @@ public class S3App {
                 keyName = cmd.getOptionValue("f");
             }
             if (cmd.hasOption("r")) {
-                apikey = cmd.getOptionValue("k");
+                apikey = cmd.getOptionValue("r");
             }
             if (cmd.hasOption("k")) {
-                amaasRegion = cmd.getOptionValue("r");
+                amaasRegion = cmd.getOptionValue("k");
             }
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
@@ -114,7 +114,7 @@ public class S3App {
             info("Downloading S3 Object....");
             byte[] bytes = downloadS3Object(awsRegion, bucketName, keyName);
             info("Completed downloading S3 Object....");
-            AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout, true);
+            AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout);
             long totalStartTs = System.currentTimeMillis();
             client.scanBuffer(bytes, keyName);
             
