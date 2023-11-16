@@ -1,6 +1,6 @@
 package com.trend.cloudone.amaas;
 
-
+import io.grpc.Status;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.S2C;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.Stage;
 import com.google.gson.Gson;
@@ -8,9 +8,12 @@ import com.trend.cloudone.amaas.scan.ScanGrpc;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.C2S;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.Command;
 
+
 import io.grpc.stub.StreamObserver;
 import java.util.Date;
 import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
 
 
 public class MockScanServicer extends ScanGrpc.ScanImplBase {
@@ -19,7 +22,9 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
     final static String IDENTIFIER_MISMATCHED = "mismatched";
     final static String IDENTIFIER_GRPC_ERROR = "grpc_error";
     final static String IDENTIFIER_EXCEED_RATE = "exceed_rate";
+    final static String IDENTIFIER_CHECK_HASH = "check_hash";
     final static Command UNKNOWN_CMD = Command.UNRECOGNIZED;
+    final static String[] MYTAGS = new String[] {"tag1" , "tag2"};
 
     private static final int MAX_RUN = 5;
     private final S2C FINAL_MSG = S2C.newBuilder()
@@ -73,16 +78,31 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
         if (req.getStage() == Stage.STAGE_INIT) {
             this.fsize = req.getRsSize();
             this.identifier = req.getFileName();
-            msg = this.getS2CMsg();
+
+            if (req.getTagsCount() > 0) {
+                for (int indx = 0; indx < req.getTagsCount(); indx++) {
+                    assertEquals(req.getTags(indx), MYTAGS[indx]);
+                }
+            }
+           
+            if (this.identifier == IDENTIFIER_CHECK_HASH) {
+                String sha1 = "sha1:e4d5a3a79140b1c141f947efef6a7372c8f2bbc4";
+                String sha256 = "sha256:c24f43025bc40b53e4e5948cf69cb59498b47d2127cf358de846cda6fefccc63";
+                if ((sha1.equals(req.getFileSha1())) && (sha256.equals(req.getFileSha256()))) {
+                    msg = this.getS2CMsg();
+                } else {
+                    msg = null;
+                }
+            } else {
+                msg = this.getS2CMsg();
+            }
         } else if (req.getStage() == Stage.STAGE_RUN) {
             if (this.identifier == IDENTIFIER_UNKNOWN_CMD) {
                 msg = this.getUnknwonCmd();
             } else if (this.identifier == IDENTIFIER_MISMATCHED) {
                 msg = this.getMismatchedCmdStage();
             } else if (this.identifier == IDENTIFIER_GRPC_ERROR) {
-                //context.set_details("Ouch!");
-                //context.set_code(grpc.StatusCode.INTERNAL);
-                //msg = "";
+                msg = null;
             } else if (this.identifier == IDENTIFIER_EXCEED_RATE) {
                 //context.set_details("Http Error Code: 429");
                 //context.set_code(grpc.StatusCode.INTERNAL);
@@ -113,11 +133,16 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
             @Override
             public void onNext(C2S request) {
                 S2C resp = processRequest(request);
+                if (resp==null) {
+                    Status status = Status.INTERNAL;
+                    responseObserver.onError(status.asRuntimeException());
+                }
                 responseObserver.onNext(resp);
             }
 
             @Override
             public void onError(Throwable t) {
+                responseObserver.onError(t);
             }
 
             @Override

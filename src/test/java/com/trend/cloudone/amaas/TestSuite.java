@@ -12,11 +12,11 @@ import io.grpc.inprocess.InProcessServerBuilder;
 @Suite.SuiteClasses({
    AMaasCallCredentialsTest.class,
    AMaasClientTest.class,
-   AMaasConstantsTest.class,
    AMaasErrorCodeTest.class,
    AMaasExceptionTest.class,
    AMaasFileBufferTest.class,
    AMaasFileReaderTest.class,
+   AMaasRegionTest.class,
    AMaasScanResultTest.class,
    MalwareItemTest.class,
 })
