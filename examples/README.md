@@ -1,7 +1,7 @@
-# Examples to use Cloud One VSAPI Java SDK
+# Examples to use File Security Java SDK
 
-Examples for using the Cloud One VSAPI Java SDK to access AMaaS gRPC scanning service.  
-There are 4 examples under the following subfolders:
+Examples for using the Vision One File Security Java SDK to access File Security gRPC scanning service.  
+There are 4 examples under the following sub-folders:
 
 1. filescan: scan a file or a folder sequentially
 2. parallelscan: scan all files in a folder concurrently
@@ -12,16 +12,16 @@ There are 4 examples under the following subfolders:
 
 - Java 8 or newer
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- [CloudOne API Key](https://cloudone.trendmicro.com/docs/identity-and-account-management/c1-api-key/)
+- [Trend Vision One API Key](https://docs.trendmicro.com/en-us/enterprise/trend-vision-one/administrative-setti/accountspartfoundati/api-keys.aspx)
 
 ## Build Examples
 
-1. The build is using Maven. The following `cloudone-vsapi-sdk` dependency can be found in the `pom.xml` file. If you wish to change the version or repository to download the SDK, please follow the [instruction to modify](./DOWNLOAD_README.md).
+1. The build is using Maven. The following `file-security-java-sdk` dependency can be found in the `pom.xml` file. If you wish to change the version or repository to download the SDK, please follow the [instruction to modify](./DOWNLOAD_README.md).
 
    ```xml
    <dependency>
       <groupId>com.trend</groupId>
-      <artifactId>cloudone-vsapi-sdk</artifactId>
+      <artifactId>file-security-java-sdk</artifactId>
       <version>[1.0,)</version>
    </dependency>
    ```
@@ -40,22 +40,22 @@ There are 4 examples under the following subfolders:
 
    ```sh
    -f a file or a directory to be scanned
-   -k customer CloudOne API key or bearer authentication token
+   -k customer Vision One API key or bearer authentication token
    -r region where the CouldOne key/token was applied. eg, us-east-1
-   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 secsonds.
+   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
    ```
 
    For example:
 
    ```sh
-   java -cp cloudone-vsapi-example-simple-1.0.0.jar App -f /myhome/test/sample.txt -k my_cloudone_api_key -r amaas_aws_region
+   java -cp file-security-sdk-example-simple-1.0.0.jar App -f /myhome/test/sample.txt -k my_vision_one_api_key -r vision_one_aws_region
    ```
 
 - `parallelscan`: This example is to scan all files in a folder concurrently. It takes 4 input options:
 
    ```sh
    -f a file or a directory to be scanned
-   -k customer CloudOne API key or bearer authentication token
+   -k customer Vision One API key or bearer authentication token
    -r region where the CouldOne key/token was applied. eg, us-east-1
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 secsonds.
    ```
@@ -63,7 +63,7 @@ There are 4 examples under the following subfolders:
    For example:
 
    ```sh
-   java -cp cloudone-vsapi-example-parallel-1.0.0.jar App -f /myhome/test/sample.txt -k my_cloudone_api_key -r amaas_aws_region
+   java -cp file-security-sdk-example-parallel-1.0.0.jar App -f /myhome/test/sample.txt -k my_vision_one_api_key -r vision_one_aws_region
    ```
 
 - `s3app`: This example download and scan a AWS S3 object key. It takes 6 input options:
@@ -72,15 +72,15 @@ There are 4 examples under the following subfolders:
    -a target AWS region
    -b target AWS S3 bucket name
    -f target AWS S3 object key to be scanned
-   -k customer CloudOne API key or bearer authentication token
+   -k customer Vision One API key or bearer authentication token
    -r region where the CouldOne key/token was applied. eg, us-east-1
-   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 secsonds.
+   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
    ```
 
    For example:
 
    ```sh
-   java -cp cloudone-vsapi-example-s3app-1.0.0.jar App -k my_cloudone_api_key -r amaas_aws_region -a my_aws_region -b my_s3_bucket -f my_s3_key
+   java -cp file-security-sdk-example-s3app-1.0.0.jar App -k my_vision_one_api_key -r vision_one_aws_region -a my_aws_region -b my_s3_bucket -f my_s3_key
    ```
 
 ### Use Lambda example
@@ -94,17 +94,17 @@ There are 4 examples under the following subfolders:
    | Java 8 on Amazon Linux or above | S3Lambda | x86_64 or arm64 |
 
 
-3. Configure Lambda Function environment variables on AWS with following settings. Substitute API KEY with CloudOne API Key.
+3. Configure Lambda Function environment variables on AWS with following settings. Substitute API KEY with Vision One API Key.
 
    | Key                     | Value                                                                    | Optional |
    | :---------------------- | :----------------------------------------------------------------------- | :------- |
-   | TM_AM_REGION            | \<AMaaS region\>                                                         | No       |
-   | TM_AM_AUTH_KEY          | \<API KEY\>                                                              | No       |
+   | TM_AM_REGION            | \<Vision One region\>                                                         | No       |
+   | TM_AM_AUTH_KEY          | \<Vision One API KEY\>                                                              | No       |
    | TM_AM_SCAN_TIMEOUT_SECS | per scan timeout (180 sec)                                               | Yes      |
    | S3_BUCKET_NAME          | target S3 bucket name                                                    | No       |
    | S3_FOLDER_NAME          | target S3 folder name                                                    | No       |
    | S3_KEY_NAME             | target S3 object key. If missing, all keys in the folder will be scanned | Yes      |
 
-4. Deploy the newly built jar `/examples/s3lambda/target/cloudone-vsapi-example-s3lambda-1.0.0.jar` to Lambda Function.
+4. Deploy the newly built jar `/examples/s3lambda/target/file-security-sdk-example-s3lambda-1.0.0.jar` to Lambda Function.
 
 5. Create a test in Lambda Function and run the test.
