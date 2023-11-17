@@ -138,6 +138,20 @@ Scan a file for malware and retrieves response data from the API.
 **_Return_**
 String the scanned result in JSON format.
 
+#### ```public String scanFile(String fileName, String[] tagList) throws AMaasException```
+
+Scan a file for malware, add a list of tags to the scan result and retrieves response data from the API.
+
+**_Parameters_**
+
+| Parameter     | Description                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| fileName      | The name of the file with path of directory containing the file to scan.                 |
+| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters.                                  |
+
+**_Return_**
+String the scanned result in JSON format.
+
 #### ```public String scanBuffer(byte[] buffer, String identifier) throws AMaasException```
 
 Scan a buffer for malware and retrieves response data from the API.
@@ -148,6 +162,21 @@ Scan a buffer for malware and retrieves response data from the API.
 | ------------- | ----------------------------------------------------------------------------------------- |
 | buffer        | The byte buffer to scan.                                                                  |
 | identifier    | A unique name to identify the buffer.                                                     |
+
+**_Return_**
+String the scanned result in JSON format.
+
+#### ```public String scanBuffer(byte[] buffer, String identifier, String[] tagList) throws AMaasException```
+
+Scan a buffer for malware, add a list of tags to the scan result, and retrieves response data from the API.
+
+**_Parameters_**
+
+| Parameter     | Description                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| buffer        | The byte buffer to scan.                                                                  |
+| identifier    | A unique name to identify the buffer.                                                     |
+| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with maximum length of 63 characters.                                     |
 
 **_Return_**
 String the scanned result in JSON format.
