@@ -5,13 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.trend</groupId>
-  <artifactId>cloudone-vsapi-example-s3app</artifactId>
+  <artifactId>file-security-sdk-example-s3app</artifactId>
   <version>1.0.0</version>
 
-  <name>cloudone-vsapi-example-3app</name>
+  <name>file-security-sdk-example-3app</name>
 
   <parent>
-    <artifactId>cloudone-vsapi-examples</artifactId>
+    <artifactId>file-security-sdk-examples</artifactId>
     <groupId>com.trend</groupId>
     <version>1.0.0</version>
   </parent>

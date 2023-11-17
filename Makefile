@@ -1,7 +1,7 @@
 TM_AM_LOG_LEVEL ?= debug
 
 IMAGE_NAME := amaas/amaas-grpc-java-client:latest
-AMAAS_SDK_NAME := tm-v1-fs-java-sdk
+AMAAS_SDK_NAME := file-security-java-sdk
 
 VERSION_LOCATION := './VERSION'
 VERSION := $(shell cat $(VERSION_LOCATION))
