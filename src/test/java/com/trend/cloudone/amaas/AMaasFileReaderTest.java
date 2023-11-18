@@ -2,6 +2,9 @@ package com.trend.cloudone.amaas;
 
 
 import org.junit.Test;
+
+import com.trend.cloudone.amaas.AMaasReader.HashType;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -54,6 +57,24 @@ public class AMaasFileReaderTest {
             fileReader.readBytes(offset, buf);
             DataFileCreator.verifyBufWithData(buf, offset); 
         } catch (Exception err) {
+            err.printStackTrace();
+            assert false;
+        }
+    }
+
+    @Test
+    public void testFileHashes() {
+        try {
+            String fileName = "data.txt";
+            String path = getClass(). getClassLoader(). getResource(""). getPath();
+
+            String sha1 = "sha1:98026e8c073707b779b0c4b922884d078cf6e110";
+            String sha256 = "sha256:67ee709d8a925003d817a98eae4c12f98193f7a44bc262d93e6265c41bf096f5";
+            AMaasReader bufReader = new AMaasFileReader(path + "/" + fileName);
+            assertEquals(sha1, bufReader.getHash(HashType.HASH_SHA1));
+            assertEquals(sha256, bufReader.getHash(HashType.HASH_SHA256));
+        } catch (Exception err) {
+            err.printStackTrace();
             assert false;
         }
     }
