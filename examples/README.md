@@ -57,7 +57,7 @@ There are 4 examples under the following sub-folders:
    -f a file or a directory to be scanned
    -k customer Vision One API key
    -r region where the Vision One API key was obtained. eg, us-east-1
-   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 secsonds.
+   -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
    ```
 
    For example:
@@ -104,6 +104,7 @@ There are 4 examples under the following sub-folders:
    | S3_BUCKET_NAME          | target S3 bucket name                                                    | No       |
    | S3_FOLDER_NAME          | target S3 folder name                                                    | No       |
    | S3_KEY_NAME             | target S3 object key. If missing, all keys in the folder will be scanned | Yes      |
+   | USER_TAG_LIST           | comma separated string consisting of user defined tags.  | Yes |
 
 4. Deploy the newly built jar `/examples/s3lambda/target/file-security-sdk-example-s3lambda-1.0.0.jar` to Lambda Function.
 
