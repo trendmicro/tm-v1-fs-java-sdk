@@ -80,15 +80,19 @@ public class S3Lambda implements RequestHandler<Object, String> {
         return arrayList;
     }
 
-    public static void sequentialScan(AMaasClient client, S3Client s3client, String bucketName, ArrayList<String> keyList) {
+    public static void sequentialScan(AMaasClient client, S3Client s3client, String bucketName, ArrayList<String> keyList, String[] tagList) {
         
         for (String keyName: keyList) {
             try {
                 byte[] bytes = downloadS3Object(s3client, bucketName, keyName);
                 long startTs = System.currentTimeMillis();
                 info("===============> Scanning S3 key {0}", keyName);
-                String scanResult = client.scanBuffer(bytes, keyName);
-
+                String scanResult = "";
+                if (tagList == null) {
+                    scanResult = client.scanBuffer(bytes, keyName);
+                } else {
+                    scanResult = client.scanBuffer(bytes, keyName, tagList);
+                }
                 long endTs = System.currentTimeMillis();
                 info("===============> scanResult {0}, scanTime {1}.", scanResult, endTs - startTs);
             } catch (S3Exception err) {
@@ -126,6 +130,8 @@ public class S3Lambda implements RequestHandler<Object, String> {
         String bucketName = System.getenv("S3_BUCKET_NAME") ;
         String folderName = System.getenv("S3_FOLDER_NAME") ;
         String keyName = System.getenv("S3_KEY_NAME") ;
+        // tags separated by comma. This is user defined tags to be used to tag scan items.
+        String tags = System.getenv("USER_TAG_LIST") ;
         long timeout = 0;
         try {
             timeout = Integer.parseInt(timeoutStr); 
@@ -146,11 +152,16 @@ public class S3Lambda implements RequestHandler<Object, String> {
                 info("No S3 object found in the S3 bucket folder");
                 return "";
             }
+            String[] tagList = null;
+            if (tags != null) {
+                info("tags to used {0}", tags);
+                tagList = tags.split(",");
+            }
             
             AMaasClient client = new AMaasClient(region, apikey, timeout);
             long totalStartTs = System.currentTimeMillis();
             
-            sequentialScan(client, s3client, bucketName, keyList);
+            sequentialScan(client, s3client, bucketName, keyList, tagList);
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);
         } catch (Exception err) {
