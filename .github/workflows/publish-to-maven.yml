@@ -1,0 +1,51 @@
+# This workflow will publish Trend Vision One File Security Java SDK to Maven Central with OSSRH
+
+name: Java with Maven
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Maven Central Repository
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'adopt'
+        server-id: ossrh
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
+        gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+        gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+    # Setup Envvar for build
+    - name: Set env
+      run: |
+        VERSION=$(cat ./VERSION)
+        echo "AMAAS_JAVA_MODULE_VERSION_ID=$VERSION" >> $GITHUB_ENV
+        if [[ "${{ github.ref }}" == "refs/tags/v"* ]]; 
+        then 
+            echo "PACK_CMD=deploy" >> $GITHUB_ENV
+        else
+            echo "PACK_CMD=package" >> $GITHUB_ENV
+        fi
+
+    # package and optionally publish Java SDK to Maven Central
+    - name: Package and optionally deploy with Maven
+      run: |
+        sed -i 's/__PACKAGE_VERSION__/${{env.AMAAS_JAVA_MODULE_VERSION_ID}}/' pom.xml
+        mkdir -p src/main/proto/
+        cp protos/scan.proto src/main/proto/
+        mvn -B clean ${{env.PACK_CMD}}
+        sed -i 's/${{env.AMAAS_JAVA_MODULE_VERSION_ID}}/__PACKAGE_VERSION__/' pom.xml
+      env:
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
