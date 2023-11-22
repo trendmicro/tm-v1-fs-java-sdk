@@ -36,10 +36,8 @@ final class AMaasRegion {
 
     static final List<String> C1Regions = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION, C1_TREND_REGION});
     static final List<String> V1Regions = Arrays.asList(new String[]{AWS_AU_REGION, AWS_CA_REGION, AWS_DE_REGION, AWS_GB_REGION, AWS_IN_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION});
-    static final List<String> SupportedV1Regions = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_IN_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION});
+    static final List<String> SupportedV1Regions = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION});
     static final List<String> SupportedC1Regions = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION});
-    static final List<String> AllRegions = AMaasRegion.concat(C1Regions, V1Regions);
-    static final List<String> AllValidRegions = AMaasRegion.concat(SupportedC1Regions, SupportedV1Regions);
 
     static final Map<String, String> V1ToC1RegionMapping = new HashMap<String, String>() {
         {
@@ -81,12 +79,10 @@ final class AMaasRegion {
     public static String getServiceFqdn(String targetRegion) {
         // ensure the region exists in v1 or c1
 	    String region = targetRegion;
-        if (!AllRegions.contains(region)) {
+        if (!SupportedV1Regions.contains(region)) {
             logger.log(Level.INFO,"{0} is not a supported region", region);
             return "";
-	    }
-	    // if it is a V1 region, map it to a C1 region
-        if (SupportedV1Regions.contains(region)) {
+        } else {    // if it is a supported V1 region, map it to a C1 region
             String c1_region = AMaasRegion.V1ToC1RegionMapping.get(region);
             if (c1_region == "") {
                 logger.log(Level.INFO,"{0} is not a supported region", region);
@@ -104,6 +100,6 @@ final class AMaasRegion {
     }
 
     public static String getAllRegionsAsString() {
-        return String.join(",", AMaasRegion.AllValidRegions);
+        return String.join(",", AMaasRegion.SupportedV1Regions);
     }
 }

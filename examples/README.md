@@ -63,7 +63,7 @@ There are 4 examples under the following sub-folders:
    For example:
 
    ```sh
-   java -cp file-security-sdk-example-parallel-1.0.0.jar App -f /myhome/test/sample.txt -k my_vision_one_api_key -r vision_one_aws_region
+   java -cp file-security-sdk-example-parallel-1.0.0.jar ConcurrentApp -f /myhome/test/sample.txt -k my_vision_one_api_key -r vision_one_aws_region
    ```
 
 - `s3app`: This example download and scan a AWS S3 object key. It takes 6 input options:

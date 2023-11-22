@@ -175,7 +175,7 @@ public class AMaasClientTest {
     public void testMissingAuthentication() throws Exception {
         exceptionRule.expect(AMaasException.class);
         exceptionRule.expectMessage(AMaasErrorCode.MSG_ID_ERR_MISSING_AUTH.getMessage());
-        new AMaasClient("us-1", null, (long)5000, false, AMaasConstants.V1FS_APP);
+        new AMaasClient("us-east-1", null, (long)5000, false, AMaasConstants.V1FS_APP);
     }
 
 
