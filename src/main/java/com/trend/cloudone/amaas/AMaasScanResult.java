@@ -20,8 +20,8 @@ public class AMaasScanResult {
      * @param fileName identifier of a file
      * @param foundMalwares an array of found malwares
      */
-    public AMaasScanResult(String version, int scanResult, String scanId, String scanTimestamp, String fileName,
-            MalwareItem[] foundMalwares) {
+    public AMaasScanResult(final String version, final int scanResult, final String scanId, final String scanTimestamp, final String fileName,
+            final MalwareItem[] foundMalwares) {
         this.version = version;
         this.scanResult = scanResult;
         this.scanId = scanId;
@@ -82,7 +82,7 @@ public class AMaasScanResult {
      * Set schema version number of a json scan result.
      * @param version AMaaS scan result json schema version to set
      */
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -90,7 +90,7 @@ public class AMaasScanResult {
      * Set a scan result.
      * @param scanResult scan outcome to set. 0 for fail and 1 for success.
      */
-    public void setScanResult(int scanResult) {
+    public void setScanResult(final int scanResult) {
         this.scanResult = scanResult;
     }
 
@@ -98,7 +98,7 @@ public class AMaasScanResult {
      * Set the Id to identify a scan.
      * @param scanId scanId to set
      */
-    public void setScanId(String scanId) {
+    public void setScanId(final String scanId) {
         this.scanId = scanId;
     }
 
@@ -106,7 +106,7 @@ public class AMaasScanResult {
      * Set timestamp a scan was performed.
      * @param scanTimestamp timestamp to set
      */
-    public void setScanTimestamp(String scanTimestamp) {
+    public void setScanTimestamp(final String scanTimestamp) {
         this.scanTimestamp = scanTimestamp;
     }
 
@@ -114,7 +114,7 @@ public class AMaasScanResult {
      * Set the identifier of a file.
      * @param fileName file identifier to set
      */
-    public void setFileName(String fileName) {
+    public void setFileName(final String fileName) {
         this.fileName = fileName;
     }
 
@@ -122,7 +122,7 @@ public class AMaasScanResult {
      * Set an array of found MalwareItem objects.
      * @param foundMalwares array of MalwareItem to set
      */
-    public void setFoundMalwares(MalwareItem[] foundMalwares) {
+    public void setFoundMalwares(final MalwareItem[] foundMalwares) {
         this.foundMalwares = foundMalwares;
     }
 }

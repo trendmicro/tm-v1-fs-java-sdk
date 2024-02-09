@@ -18,7 +18,9 @@ final class AMaasFileReader extends AMaasBaseReader {
     private String fileName;
     private long fileSize;
 
-    AMaasFileReader (String fileName) throws AMaasException {
+    private static final int ONE_KBYTE = 1024;
+
+    AMaasFileReader(final String fileName) throws AMaasException {
         try {
             this.fileName = fileName;
             File targetFile = new File(fileName);
@@ -29,19 +31,19 @@ final class AMaasFileReader extends AMaasBaseReader {
                 throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_FILE_NO_PERMISSION, this.fileName);
             }
             this.fileSize = targetFile.length();
-            
+
             MessageDigest md = MessageDigest.getInstance("SHA1");
             MessageDigest md256 = MessageDigest.getInstance("SHA-256");
             try (FileInputStream is = new FileInputStream(targetFile)) {
-                byte[] bytesBuffer = new byte[1024];
+                byte[] bytesBuffer = new byte[ONE_KBYTE];
                 int bytesRead = -1;
- 
+
                 while ((bytesRead = is.read(bytesBuffer)) != -1) {
                     md.update(bytesBuffer, 0, bytesRead);
                     md256.update(bytesBuffer, 0, bytesRead);
                 }
-                this.sha1 = md.digest();
-                this.sha256 = md256.digest();
+                this.setHash(HashType.HASH_SHA1, md.digest());
+                this.setHash(HashType.HASH_SHA256, md256.digest());
             } catch (IOException e) {
                 throw new IllegalArgumentException(e);
             }
@@ -61,7 +63,7 @@ final class AMaasFileReader extends AMaasBaseReader {
         try {
             this.randomFile.close();
         } catch (IOException err) {
-            logger.log(Level.INFO,"unexpected exception {0}", err);      
+            logger.log(Level.INFO, "unexpected exception {0}", err);
         }
     }
 
@@ -73,7 +75,7 @@ final class AMaasFileReader extends AMaasBaseReader {
         return this.fileSize;
     }
 
-    public int readBytes(int offset, byte[] buff) throws IOException {
+    public int readBytes(final int offset, final byte[] buff) throws IOException {
         this.randomFile.seek(offset);
         return this.randomFile.read(buff);
     }

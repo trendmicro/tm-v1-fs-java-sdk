@@ -41,30 +41,34 @@ final class AMaasRegion {
 
     static final Map<String, String> V1ToC1RegionMapping = new HashMap<String, String>() {
         {
-	        put(AWS_AU_REGION, C1_AU_REGION);
-	        put(AWS_DE_REGION, C1_DE_REGION);
-	        put(AWS_IN_REGION, C1_IN_REGION);
-	        put(AWS_JP_REGION, C1_JP_REGION);
-	        put(AWS_SG_REGION, C1_SG_REGION);
-	        put(AWS_US_REGION, C1_US_REGION);
+            put(AWS_AU_REGION, C1_AU_REGION);
+            put(AWS_DE_REGION, C1_DE_REGION);
+            put(AWS_IN_REGION, C1_IN_REGION);
+            put(AWS_JP_REGION, C1_JP_REGION);
+            put(AWS_SG_REGION, C1_SG_REGION);
+            put(AWS_US_REGION, C1_US_REGION);
         }
     };
 
-    static final Map<String, String> C1Region2HostMapping = new HashMap<String, String>(){
-		{
+    static final Map<String, String> C1Region2HostMapping = new HashMap<String, String>() {
+        {
             put(C1_US_REGION, "antimalware.us-1.cloudone.trendmicro.com");
-		    put(C1_IN_REGION, "antimalware.in-1.cloudone.trendmicro.com");
-		    put(C1_DE_REGION, "antimalware.de-1.cloudone.trendmicro.com");
-		    put(C1_SG_REGION, "antimalware.sg-1.cloudone.trendmicro.com");
-		    put(C1_AU_REGION, "antimalware.au-1.cloudone.trendmicro.com");
-		    put(C1_JP_REGION, "antimalware.jp-1.cloudone.trendmicro.com");
-		    put(C1_GB_REGION, "antimalware.gb-1.cloudone.trendmicro.com");
-		    put(C1_CA_REGION, "antimalware.ca-1.cloudone.trendmicro.com");
-		    put(C1_TREND_REGION, "antimalware.trend-us-1.cloudone.trendmicro.com");
+            put(C1_IN_REGION, "antimalware.in-1.cloudone.trendmicro.com");
+            put(C1_DE_REGION, "antimalware.de-1.cloudone.trendmicro.com");
+            put(C1_SG_REGION, "antimalware.sg-1.cloudone.trendmicro.com");
+            put(C1_AU_REGION, "antimalware.au-1.cloudone.trendmicro.com");
+            put(C1_JP_REGION, "antimalware.jp-1.cloudone.trendmicro.com");
+            put(C1_GB_REGION, "antimalware.gb-1.cloudone.trendmicro.com");
+            put(C1_CA_REGION, "antimalware.ca-1.cloudone.trendmicro.com");
+            put(C1_TREND_REGION, "antimalware.trend-us-1.cloudone.trendmicro.com");
         }
-	};
+    };
 
-    private static List<String> concat(List<String> array1, List<String> array2) {
+    private AMaasRegion() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
+    private static List<String> concat(final List<String> array1, final List<String> array2) {
 
         List<String> result = new ArrayList<String>(AMaasRegion.C1Regions);
         result.addAll(V1Regions);
@@ -76,24 +80,24 @@ final class AMaasRegion {
      * @param targetRegion region to use
      * @return the FQDN of the given region.
      */
-    public static String getServiceFqdn(String targetRegion) {
+    public static String getServiceFqdn(final String targetRegion) {
         // ensure the region exists in v1 or c1
-	    String region = targetRegion;
+        String region = targetRegion;
         if (!SupportedV1Regions.contains(region)) {
-            logger.log(Level.INFO,"{0} is not a supported region", region);
+            logger.log(Level.INFO, "{0} is not a supported region", region);
             return "";
         } else {    // if it is a supported V1 region, map it to a C1 region
-            String c1_region = AMaasRegion.V1ToC1RegionMapping.get(region);
-            if (c1_region == "") {
-                logger.log(Level.INFO,"{0} is not a supported region", region);
+            String c1Region = AMaasRegion.V1ToC1RegionMapping.get(region);
+            if (c1Region == "") {
+                logger.log(Level.INFO, "{0} is not a supported region", region);
                 return "";
             }
-            region = c1_region;
+            region = c1Region;
         }
 
         String fqdn = AMaasRegion.C1Region2HostMapping.get(region);
         if (fqdn == null) {
-            logger.log(Level.INFO,"{0} is not a supported region", region);
+            logger.log(Level.INFO, "{0} is not a supported region", region);
             return "";
         }
         return fqdn;
