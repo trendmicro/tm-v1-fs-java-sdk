@@ -1,9 +1,10 @@
-# This workflow will publish Trend Vision One File Security Java SDK to Maven Central with OSSRH
+# This workflow will publish AMaaS Java SDK to Maven Central with OSSRH
 
 name: Java with Maven
 
 on:
-  push:
+  release:
+    types: [published]
 
 permissions:
   contents: read

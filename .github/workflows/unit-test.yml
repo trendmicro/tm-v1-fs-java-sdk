@@ -1,0 +1,17 @@
+# Copyright (C) 2023 Trend Micro Inc. All rights reserved.
+name: Quality Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ebf-pod-ubuntu-2004-slim@${{ github.run_id }}-unit-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run unit tests
+        run: make test
