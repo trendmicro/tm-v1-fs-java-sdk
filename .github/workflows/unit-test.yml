@@ -1,0 +1,26 @@
+# This workflow will publish AMaaS Java SDK to Maven Central with OSSRH
+
+name: Java SDK Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Maven and Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'adopt'
+
+    - name: Run unit tests
+      run: |
+        mkdir -p src/main/proto/
+        cp protos/scan.proto src/main/proto/
+        mvn test

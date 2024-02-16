@@ -1,7 +1,6 @@
 package com.trend.cloudone.amaas;
 
 import java.util.concurrent.Executor;
-import java.util.regex.*;
 import io.grpc.CallCredentials;
 import io.grpc.Metadata;
 import io.grpc.Status;
@@ -19,17 +18,17 @@ final class AMaasCallCredentials extends CallCredentials {
         return tokenType;
     }
 
-    AMaasCallCredentials(String token, String appName) {
-        this.token = token;
-        this.appName = appName;
+    AMaasCallCredentials(final String authToken, final String applicationName) {
+        this.token = authToken;
+        this.appName = applicationName;
         this.tokenType  = AMaasConstants.TokenType.AUTH_TYPE_APIKEY;
     }
 
     @Override
     public void applyRequestMetadata(
-            RequestInfo requestInfo,
-            Executor executor,
-            MetadataApplier metadataApplier) {
+            final RequestInfo requestInfo,
+            final Executor executor,
+            final MetadataApplier metadataApplier) {
         executor.execute(() -> {
             try {
                 Metadata headers = new Metadata();

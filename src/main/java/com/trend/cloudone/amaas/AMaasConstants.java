@@ -9,6 +9,10 @@ final class AMaasConstants {
 
     public static final String V1FS_APP = "V1FS";
 
+    private AMaasConstants() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
     /*
      * Enum class for AMaaS authentication token types.
      */
