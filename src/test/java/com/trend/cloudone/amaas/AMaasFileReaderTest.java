@@ -16,7 +16,7 @@ public class AMaasFileReaderTest {
 
 
     @Test
-    public void testAMaasFileReader_FileNotFound() {
+    public void testAMaasFileReaderFileNotFound() {
         String fileName = "abc.txt";
         try {
             new AMaasFileReader(fileName);
@@ -25,24 +25,24 @@ public class AMaasFileReaderTest {
             assertEquals(AMaasErrorCode.MSG_ID_ERR_FILE_NOT_FOUND, err.getErrorCode());
         }
     }
-    
+
 
     @Test
-    public void testAMaasFileReader_FileNoPermission() {
+    public void testAMaasFileReaderFileNoPermission() {
         String fileName = DataFileCreator.TEST_DATA_FILE_NAME;
         File newFile = null;
         try {
             newFile = new File(fileName);
-            newFile.setReadable(false); 
+            newFile.setReadable(false);
             new AMaasFileReader(fileName);
             fail();
         } catch  (AMaasException err) {
             assertEquals(AMaasErrorCode.MSG_ID_ERR_FILE_NO_PERMISSION, err.getErrorCode());
         } finally {
-            newFile.setReadable(true); 
+            newFile.setReadable(true);
         }
     }
-    
+
 
     @Test
     public void testReadBytes() {
@@ -51,11 +51,11 @@ public class AMaasFileReaderTest {
             assertEquals(fileReader.getIdentifier(), DataFileCreator.TEST_DATA_FILE_NAME);
             long len = fileReader.getLength();
             Random rand = new Random();
-            int offset = rand.nextInt((int)len);
-            int size = rand.nextInt((int)len - offset);
+            int offset = rand.nextInt((int) len);
+            int size = rand.nextInt((int) len - offset);
             byte[] buf = new byte[size];
             fileReader.readBytes(offset, buf);
-            DataFileCreator.verifyBufWithData(buf, offset); 
+            DataFileCreator.verifyBufWithData(buf, offset);
         } catch (Exception err) {
             err.printStackTrace();
             assert false;
@@ -66,7 +66,7 @@ public class AMaasFileReaderTest {
     public void testFileHashes() {
         try {
             String fileName = "data.txt";
-            String path = getClass(). getClassLoader(). getResource(""). getPath();
+            String path = getClass().getClassLoader().getResource("").getPath();
 
             String sha1 = "sha1:98026e8c073707b779b0c4b922884d078cf6e110";
             String sha256 = "sha256:67ee709d8a925003d817a98eae4c12f98193f7a44bc262d93e6265c41bf096f5";

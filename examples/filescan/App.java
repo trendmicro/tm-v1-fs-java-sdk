@@ -13,14 +13,17 @@ import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
 
 
-public class App {
+public final class App {
     private static final Logger logger = Logger.getLogger(App.class.getName());
 
-    private static void info(String msg, Object... params) {
+    private App() {
+    }
+
+    private static void info(final String msg, final Object... params) {
         logger.log(Level.INFO, msg, params);
     }
 
-    public static String[] listFiles(String pathName) {
+    private static String[] listFiles(final String pathName) {
         File fObj = new File(pathName);
         if (!fObj.isDirectory()) {
             return new String[]{pathName};
@@ -31,7 +34,7 @@ public class App {
             .collect(Collectors.toList()).toArray(new String[] {});
     }
 
-    static void scanFilesInSequential(AMaasClient client, String[] fList) {
+    static void scanFilesInSequential(final AMaasClient client, final String[] fList) {
         for (String fileName: fList) {
             try {
                 info("===============> Scanning file {0}", fileName);
@@ -43,7 +46,7 @@ public class App {
             } catch (AMaasException err) {
                 info("Exception {0}", err.getMessage());
             }
-        } 
+        }
     }
 
     private static Options getCmdOptions() {
@@ -54,16 +57,16 @@ public class App {
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
         return optionList;
     }
-      
-    /*
-     * The program takes 4 options and respecive values to configure the AMaaS SDK client.
-     * @param String[]  Input options:
+
+    /**
+     * The program takes 4 options and respective values to configure the AMaaS SDK client.
+     * @param args Input options:
      *                  -f a file or a directory to be scanned
      *                  -k the API key or bearer authentication token
      *                  -r region where the key/token was applied. eg, us-east-1
      *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         String pathname = "";
         String apikey = null;
         String region = "";
@@ -90,9 +93,9 @@ public class App {
             AMaasClient client = new AMaasClient(region, apikey, timeout);
             String[] listOfFiles = listFiles(pathname);
             long totalStartTs = System.currentTimeMillis();
-        
+
             scanFilesInSequential(client, listOfFiles);
-        
+
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);
         } catch (ParseException err) {

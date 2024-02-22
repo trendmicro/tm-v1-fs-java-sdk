@@ -27,19 +27,25 @@ import java.util.Arrays;
 
 
 public class AMaasClientTest {
+    private static final int TIMEOUT_SEC = 5000;
+    private static final int BUFF_LENGTH = 64;
     private final MutableHandlerRegistry serviceRegistry = new MutableHandlerRegistry();
     private ScanGrpc.ScanStub client;
-    protected Gson gson;
+    private Gson gson;
 
-
+    /**
+     * Rule for grpc cleanup.
+     */
     @Rule
     public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
 
-
+    /**
+     * Rule for expected exception.
+     */
     @Rule
     public ExpectedException exceptionRule = ExpectedException.none();
 
-    
+
     @Before
     public void setUp() throws Exception {
         this.gson = new GsonBuilder().create();
@@ -52,14 +58,13 @@ public class AMaasClientTest {
 
         this.client = ScanGrpc.newStub(grpcCleanup.register(
             InProcessChannelBuilder.forName(serverName).directExecutor().build()));
-        
     }
 
 
-    private void prepareTestObj(AMaasClient.AMaasServerCallback serverCallback, AMaasReader reader, String[] tagList) {
+    private void prepareTestObj(final AMaasClient.AMaasServerCallback serverCallback, final AMaasReader reader, final String[] tagList) {
         MockScanServicer servicer = new MockScanServicer();
         serviceRegistry.addService(servicer);
-        
+
         StreamObserver<ScanOuterClass.C2S> requestObserver =  this.client.run(serverCallback);
         // initialize the callback context before proceeding
 
@@ -68,7 +73,7 @@ public class AMaasClientTest {
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
         serverCallback.setConext(requestObserver, reader);
 
-        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int)fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str);
+        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int) fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str);
         if (tagList != null) {
             builder.addAllTags(Arrays.asList(tagList));
         }
@@ -88,7 +93,6 @@ public class AMaasClientTest {
             String scanResultjson = serverCallback.waitTilExit();
             AMaasScanResult scanResult = this.gson.fromJson(scanResultjson, AMaasScanResult.class);
             assertEquals(scanResult.getScanResult(), 0);
-            
         } catch (AMaasException err) {
             System.out.println(err.getMessage());
             err.printStackTrace();
@@ -108,7 +112,6 @@ public class AMaasClientTest {
             String scanResultjson = serverCallback.waitTilExit();
             AMaasScanResult scanResult = this.gson.fromJson(scanResultjson, AMaasScanResult.class);
             assertEquals(scanResult.getScanResult(), 0);
-            
         } catch (AMaasException err) {
             err.printStackTrace();
             assert false;
@@ -128,7 +131,6 @@ public class AMaasClientTest {
             this.gson.fromJson(scanResultjson, AMaasScanResult.class);
             //assertEquals(scanResult.getScanResult(), 0);
             assert false;
-            
         } catch (AMaasException err) {
             err.printStackTrace();
             assert true;
@@ -152,7 +154,6 @@ public class AMaasClientTest {
             assertEquals(scanResult.getFoundMalwares().length, 2);
             assertEquals(scanResult.getFoundMalwares()[0].getMalwareName(), "virus1");
             assertEquals(scanResult.getFoundMalwares()[1].getMalwareName(), "virus2");
-            
         } catch (AMaasException err) {
             System.out.println(err.getMessage());
             assert false;
@@ -167,7 +168,7 @@ public class AMaasClientTest {
         String region = "aa-1";
         exceptionRule.expect(AMaasException.class);
         exceptionRule.expectMessage(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION.getMessage(region, AMaasRegion.getAllRegionsAsString()));
-        new AMaasClient(region, "AAAPPPKet", (long)5000, false, AMaasConstants.V1FS_APP);
+        new AMaasClient(region, "AAAPPPKet", (long) TIMEOUT_SEC, false, AMaasConstants.V1FS_APP);
     }
 
 
@@ -175,7 +176,7 @@ public class AMaasClientTest {
     public void testMissingAuthentication() throws Exception {
         exceptionRule.expect(AMaasException.class);
         exceptionRule.expectMessage(AMaasErrorCode.MSG_ID_ERR_MISSING_AUTH.getMessage());
-        new AMaasClient("us-east-1", null, (long)5000, false, AMaasConstants.V1FS_APP);
+        new AMaasClient("us-east-1", null, (long) TIMEOUT_SEC, false, AMaasConstants.V1FS_APP);
     }
 
 
@@ -215,7 +216,6 @@ public class AMaasClientTest {
             System.out.println(scanResultjson);
             AMaasScanResult scanResult = this.gson.fromJson(scanResultjson, AMaasScanResult.class);
             assertEquals(scanResult.getScanResult(), 0);
-            
         } catch (Exception err) {
             err.printStackTrace();
             assert false;
@@ -228,7 +228,7 @@ public class AMaasClientTest {
         AMaasException err = AMaasClient.getTagListErrors(taglist);
         assertEquals(err.getErrorCode(), AMaasErrorCode.MSG_ID_ERR_MAX_NUMBER_OF_TAGS);
 
-        String space64 = new String(new char[64]);
+        String space64 = new String(new char[BUFF_LENGTH]);
         taglist = new String[]{space64};
         err = AMaasClient.getTagListErrors(taglist);
         assertEquals(err.getErrorCode(), AMaasErrorCode.MSG_ID_ERR_LENGTH_OF_TAG);

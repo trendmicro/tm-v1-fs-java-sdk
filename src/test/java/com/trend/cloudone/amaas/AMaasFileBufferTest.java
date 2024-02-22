@@ -22,13 +22,13 @@ public class AMaasFileBufferTest {
             AMaasBufferReader bufReader = new AMaasBufferReader(data, DataFileCreator.TEST_DATA_FILE_NAME);
             long len = bufReader.getLength();
             Random rand = new Random();
-            int offset = rand.nextInt((int)len);
-            int size = rand.nextInt((int)len - offset);
+            int offset = rand.nextInt((int) len);
+            int size = rand.nextInt((int) len - offset);
             byte[] buf = new byte[size];
             bufReader.readBytes(offset, buf);
             assertEquals(bufReader.getIdentifier(), DataFileCreator.TEST_DATA_FILE_NAME);
             assertEquals(bufReader.getLength(), data.length);
-            DataFileCreator.verifyBufWithData(buf, offset); 
+            DataFileCreator.verifyBufWithData(buf, offset);
         } catch (Exception err) {
             assert false;
         }

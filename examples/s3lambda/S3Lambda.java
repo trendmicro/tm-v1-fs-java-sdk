@@ -6,7 +6,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -14,25 +13,26 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.S3Client;
-import com.amazonaws.services.lambda.runtime.Context; 
+import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
 
-public class S3Lambda implements RequestHandler<Object, String> {
+public final class S3Lambda implements RequestHandler<Object, String> {
     private static final Logger logger = Logger.getLogger(S3Lambda.class.getName());
+    private static final int BUFFER_LENGTH = 16483;
 
-    private static void info(String msg, Object... params) {
+    private static void info(final String msg, final Object... params) {
         logger.log(Level.INFO, msg, params);
     }
- 
-    public static byte[] serialize(ResponseInputStream<GetObjectResponse> data) {
+
+    private static byte[] serialize(final ResponseInputStream<GetObjectResponse> data) {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    
+
         int nRead;
-        byte[] byteArray = new byte[16384];
-    
+        byte[] byteArray = new byte[BUFFER_LENGTH];
+
         try {
             while ((nRead = data.read(byteArray, 0, byteArray.length)) != -1) {
                 buffer.write(byteArray, 0, nRead);
@@ -40,11 +40,11 @@ public class S3Lambda implements RequestHandler<Object, String> {
         } catch (IOException e) {
             info("I/O error while serializing data: {} | {}", e.getMessage(), e);
         }
-    
+
         return buffer.toByteArray();
     }
 
-    public static byte[] downloadS3Object(S3Client s3client, String bucketName, String key) throws S3Exception {
+    private static byte[] downloadS3Object(final S3Client s3client, final String bucketName, final String key) throws S3Exception {
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
             .bucket(bucketName)
@@ -55,14 +55,14 @@ public class S3Lambda implements RequestHandler<Object, String> {
         return serialize(response);
     }
 
-    public static ArrayList<String> listAllS3Keys(S3Client s3client, String bucketName, String folderName) {
+    private static ArrayList<String> listAllS3Keys(final S3Client s3client, final String bucketName, final String folderName) {
         ArrayList<String> arrayList = new ArrayList<>();
         ListObjectsRequest.Builder builder = ListObjectsRequest
             .builder()
             .bucket(bucketName);
         if (folderName != null && folderName != "") {
             builder.prefix(folderName);
-        } 
+        }
         ListObjectsRequest listObjects = builder.build();
 
         try {
@@ -80,8 +80,8 @@ public class S3Lambda implements RequestHandler<Object, String> {
         return arrayList;
     }
 
-    public static void sequentialScan(AMaasClient client, S3Client s3client, String bucketName, ArrayList<String> keyList, String[] tagList) {
-        
+    private static void sequentialScan(final AMaasClient client, final S3Client s3client, final String bucketName, final ArrayList<String> keyList, final String[] tagList) {
+
         for (String keyName: keyList) {
             try {
                 byte[] bytes = downloadS3Object(s3client, bucketName, keyName);
@@ -110,7 +110,7 @@ public class S3Lambda implements RequestHandler<Object, String> {
       * TM_AM_AUTH_KEY the API key or bearer authentication token
       * TM_AM_REGION region where the C1 key/token was applied. eg, us-east-1
       * TM_AM_SCAN_TIMEOUT_SECS client maximum waiting time in seconds for a scan. 0 or missing means default.
-      * 
+      *
       * S3_BUCKET_NAME S3 bucket name
       * S3_FOLDER_NAME S3 key prefix as folder name
       * S3_KEY_NAME a particular S3 key to be scanned
@@ -120,21 +120,21 @@ public class S3Lambda implements RequestHandler<Object, String> {
       *
     */
     @Override
-    public String handleRequest(Object input, Context context) {
+    public String handleRequest(final Object input, final Context context) {
         info("Testing scanning");
-        
-        String apikey = System.getenv("TM_AM_AUTH_KEY") ;
-        String region = System.getenv("TM_AM_REGION") ;
+
+        String apikey = System.getenv("TM_AM_AUTH_KEY");
+        String region = System.getenv("TM_AM_REGION");
         String timeoutStr = System.getenv("TM_AM_SCAN_TIMEOUT_SECS");
 
-        String bucketName = System.getenv("S3_BUCKET_NAME") ;
-        String folderName = System.getenv("S3_FOLDER_NAME") ;
-        String keyName = System.getenv("S3_KEY_NAME") ;
+        String bucketName = System.getenv("S3_BUCKET_NAME");
+        String folderName = System.getenv("S3_FOLDER_NAME");
+        String keyName = System.getenv("S3_KEY_NAME");
         // tags separated by comma. This is user defined tags to be used to tag scan items.
-        String tags = System.getenv("USER_TAG_LIST") ;
+        String tags = System.getenv("USER_TAG_LIST");
         long timeout = 0;
         try {
-            timeout = Integer.parseInt(timeoutStr); 
+            timeout = Integer.parseInt(timeoutStr);
         } catch (NumberFormatException err) {
             info("Timeout setting ignored.");
         }
@@ -145,7 +145,7 @@ public class S3Lambda implements RequestHandler<Object, String> {
             if (keyName == null || keyName == "") {
                 keyList = listAllS3Keys(s3client, bucketName, folderName);
             } else {
-                keyList = new ArrayList<String>(){{add(keyName);}};
+                keyList = new ArrayList<String>() {{ add(keyName); }};
             }
 
             if (keyList == null || keyList.isEmpty()) {
@@ -157,10 +157,10 @@ public class S3Lambda implements RequestHandler<Object, String> {
                 info("tags to used {0}", tags);
                 tagList = tags.split(",");
             }
-            
+
             AMaasClient client = new AMaasClient(region, apikey, timeout);
             long totalStartTs = System.currentTimeMillis();
-            
+
             sequentialScan(client, s3client, bucketName, keyList, tagList);
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);

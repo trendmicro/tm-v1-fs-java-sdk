@@ -1,12 +1,10 @@
-# This workflow will publish Trend Vision One File Security Java SDK to Maven Central with OSSRH
+# This workflow will publish AMaaS Java SDK to Maven Central with OSSRH
 
 name: Java with Maven
 
 on:
-  push:
-
-permissions:
-  contents: read
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -28,8 +26,6 @@ jobs:
     # Setup Envvar for build
     - name: Set env
       run: |
-        VERSION=$(cat ./VERSION)
-        echo "AMAAS_JAVA_MODULE_VERSION_ID=$VERSION" >> $GITHUB_ENV
         if [[ "${{ github.ref }}" == "refs/tags/v"* ]]; 
         then 
             echo "PACK_CMD=deploy" >> $GITHUB_ENV
@@ -40,11 +36,9 @@ jobs:
     # package and optionally publish Java SDK to Maven Central
     - name: Package and optionally deploy with Maven
       run: |
-        sed -i 's/__PACKAGE_VERSION__/${{env.AMAAS_JAVA_MODULE_VERSION_ID}}/' pom.xml
         mkdir -p src/main/proto/
         cp protos/scan.proto src/main/proto/
         mvn -B clean ${{env.PACK_CMD}}
-        sed -i 's/${{env.AMAAS_JAVA_MODULE_VERSION_ID}}/__PACKAGE_VERSION__/' pom.xml
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
