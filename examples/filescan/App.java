@@ -13,14 +13,17 @@ import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
 
 
-public class App {
+public final class App {
     private static final Logger logger = Logger.getLogger(App.class.getName());
 
-    private static void info(String msg, Object... params) {
+    private App() {
+    }
+
+    private static void info(final String msg, final Object... params) {
         logger.log(Level.INFO, msg, params);
     }
 
-    public static String[] listFiles(String pathName) {
+    private static String[] listFiles(final String pathName) {
         File fObj = new File(pathName);
         if (!fObj.isDirectory()) {
             return new String[]{pathName};
@@ -31,19 +34,19 @@ public class App {
             .collect(Collectors.toList()).toArray(new String[] {});
     }
 
-    static void scanFilesInSequential(AMaasClient client, String[] fList) {
+    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag) {
         for (String fileName: fList) {
             try {
                 info("===============> Scanning file {0}", fileName);
                 long startTS = System.currentTimeMillis();
-                String scanResult = client.scanFile(fileName);
+                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag);
                 long endTS = System.currentTimeMillis();
                 info("{0}", scanResult);
                 info("===============> File scan time {0}", endTS - startTS);
             } catch (AMaasException err) {
                 info("Exception {0}", err.getMessage());
             }
-        } 
+        }
     }
 
     private static Options getCmdOptions() {
@@ -52,22 +55,31 @@ public class App {
         optionList.addRequiredOption("k", "apikey", true, "Cloud One API key");
         optionList.addRequiredOption("r", "region", true, "AMaaS service region");
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
+        optionList.addOption(null, "taglist", true, "commas separated string of tags.e.g, sdk,dev");
+        optionList.addOption(null, "pml", true, "Enable predictive machine language detection");
+        optionList.addOption(null, "feedback", true, "Enable Trend Smart Protection Network's Smart Feedback");
         return optionList;
     }
-      
-    /*
-     * The program takes 4 options and respecive values to configure the AMaaS SDK client.
-     * @param String[]  Input options:
+
+    /**
+     * The program takes 4 options and respective values to configure the AMaaS SDK client.
+     * @param args Input options:
      *                  -f a file or a directory to be scanned
      *                  -k the API key or bearer authentication token
      *                  -r region where the key/token was applied. eg, us-east-1
      *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
+     *                  --taglist a commas separated string of tags. e.g. dev,sdk
+     *                  --pml enable predictive machine language detection. default to false
+     *                  --feedback enable Trend Micro Smart Protection Network's Smart Feedback. default to false
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         String pathname = "";
         String apikey = null;
         String region = "";
         long timeout = 0;
+        String tags = null;
+        boolean pmlFlag = false;
+        boolean feedbackFlag = false;
 
         DefaultParser parser = new DefaultParser();
         HelpFormatter helper = new HelpFormatter();
@@ -86,13 +98,31 @@ public class App {
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
+            if (cmd.hasOption("taglist")) {
+                tags = cmd.getOptionValue("taglist");
+            }
+            if (cmd.hasOption("pml")) {
+                if (cmd.getOptionValue("pml").equals("true")) {
+                    pmlFlag = true;
+                }
+            }
+            if (cmd.hasOption("feedback")) {
+                if (cmd.getOptionValue("feedback").equals("true")) {
+                    feedbackFlag = true;
+                }
+            }
+            String[] tagList = null;
+            if (tags != null) {
+                info("tags to used {0}", tags);
+                tagList = tags.split(",");
+            }
 
             AMaasClient client = new AMaasClient(region, apikey, timeout);
             String[] listOfFiles = listFiles(pathname);
             long totalStartTs = System.currentTimeMillis();
-        
-            scanFilesInSequential(client, listOfFiles);
-        
+
+            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag);
+
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);
         } catch (ParseException err) {

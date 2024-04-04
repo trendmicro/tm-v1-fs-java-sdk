@@ -22,22 +22,22 @@ import io.grpc.inprocess.InProcessServerBuilder;
 })
 
 
-public class TestSuite {
-    
+public final class TestSuite {
+    private TestSuite() {
+    }
+
     @BeforeClass
     public static void setUpClass() throws Exception {
-        
+
         DataFileCreator.createDataFile();
         MockScanServicer servicer = new MockScanServicer();
         String uniqueName = InProcessServerBuilder.generateName();
         InProcessServerBuilder.forName(uniqueName).directExecutor().addService(servicer).build().start();
     }
 
-    
+
     @AfterClass
     public static void tearDownClass() {
-        
         DataFileCreator.deleteDataFile();
     }
-    
 }

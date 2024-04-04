@@ -43,6 +43,9 @@ There are 4 examples under the following sub-folders:
    -k customer Vision One API key
    -r region where the Vision One API key was obtained. eg, us-east-1
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
+   --taglist a commas separated string of tags. e.g. dev,sdk
+   --pml enable predictive machine language detection. default to false
+   --feedback enable Smart Feedback of Trend Micro Smart Protection Network. default to false
    ```
 
    For example:

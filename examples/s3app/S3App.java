@@ -18,19 +18,22 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
 
-public class S3App {
+public final class S3App {
     private static final Logger logger = Logger.getLogger(S3App.class.getName());
+    private static final int BUFFER_LENGTH = 16483;
+    private S3App() {
+    }
 
-    private static void info(String msg, Object... params) {
+    private static void info(final String msg, final Object... params) {
         logger.log(Level.INFO, msg, params);
     }
- 
-    public static byte[] serialize(ResponseInputStream<GetObjectResponse> data) {
+
+    private static byte[] serialize(final ResponseInputStream<GetObjectResponse> data) {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    
+
         int nRead;
-        byte[] byteArray = new byte[16384];
-    
+        byte[] byteArray = new byte[BUFFER_LENGTH];
+
         try {
             while ((nRead = data.read(byteArray, 0, byteArray.length)) != -1) {
                 buffer.write(byteArray, 0, nRead);
@@ -38,12 +41,12 @@ public class S3App {
         } catch (IOException e) {
             info("I/O error while serializing data: {} | {}", e.getMessage(), e);
         }
-    
+
         return buffer.toByteArray();
     }
 
-    public static byte[] downloadS3Object(String regionstr, String bucketName, String key) throws Exception {
-        
+    private static byte[] downloadS3Object(final String regionstr, final String bucketName, final String key) throws Exception {
+
         S3Client s3 = S3Client.builder()
             .credentialsProvider(ProfileCredentialsProvider.create())
             .region(Region.of(regionstr))
@@ -69,17 +72,17 @@ public class S3App {
         return optionList;
     }
 
-    /*
+    /**
       * The program takes 6 options and respecive values to configure the AMaaS SDK client.
-      * @param String[]  Input options:
-      *                  -a AWS region 
+      * @param args Input options:
+      *                  -a AWS region
       *                  -b S3 bucket name
       *                  -f S3 key to be scanned
       *                  -k the API key or bearer authentication token
       *                  -r region where the C1 key/token was applied. eg, us-east-1
       *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
     */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         String awsRegion = "";
         String bucketName = "";
         String keyName = "";
@@ -97,7 +100,7 @@ public class S3App {
             }
             if (cmd.hasOption("b")) {
                 bucketName = cmd.getOptionValue("b");
-            } 
+            }
             if (cmd.hasOption("f")) {
                 keyName = cmd.getOptionValue("f");
             }
@@ -110,14 +113,12 @@ public class S3App {
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
-        
             info("Downloading S3 Object....");
             byte[] bytes = downloadS3Object(awsRegion, bucketName, keyName);
             info("Completed downloading S3 Object....");
             AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout);
             long totalStartTs = System.currentTimeMillis();
             client.scanBuffer(bytes, keyName);
-            
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);
         } catch (ParseException err) {
