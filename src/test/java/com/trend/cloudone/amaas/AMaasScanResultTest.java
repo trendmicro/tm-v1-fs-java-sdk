@@ -29,7 +29,7 @@ public class AMaasScanResultTest {
         String fileName = "file1";
         String scanId = "scan123";
         int scanResult = 1;
-        MalwareItem[] foundMalwares = new MalwareItem[] { new MalwareItem("malware1", "file1"), new MalwareItem("malware1", "file1")};
+        MalwareItem[] foundMalwares = new MalwareItem[] {new MalwareItem("malware1", "file1"), new MalwareItem("malware1", "file1")};
         AMaasScanResult result = new AMaasScanResult(version, scanResult, scanId, ts, fileName, foundMalwares);
         assertEquals(version, result.getVersion());
         assertEquals(scanResult, result.getScanResult());
@@ -46,7 +46,7 @@ public class AMaasScanResultTest {
         String scanId = "scan123";
         int scanResult = 0;
         AMaasScanResult result = new AMaasScanResult(version, scanResult, scanId, ts, fileName, null);
-        MalwareItem[] foundMalwares = new MalwareItem[] { new MalwareItem("malware1", "file1"), new MalwareItem("malware1", "file1")}; 
+        MalwareItem[] foundMalwares = new MalwareItem[] {new MalwareItem("malware1", "file1"), new MalwareItem("malware1", "file1")};
         result.setFoundMalwares(foundMalwares);
         result.setScanResult(1);
         assertEquals(version, result.getVersion());

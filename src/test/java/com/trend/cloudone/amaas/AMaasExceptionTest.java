@@ -18,7 +18,7 @@ public class AMaasExceptionTest {
 
     @Test
     public void testGetErrorCodeThrowable() {
-        FileNotFoundException except = new FileNotFoundException("abc.txt not found"); 
+        FileNotFoundException except = new FileNotFoundException("abc.txt not found");
         AMaasException err = new AMaasException(AMaasErrorCode.MSG_ID_GRPC_ERROR, except, 2, "UNKNOWN");
         assertEquals(AMaasErrorCode.MSG_ID_GRPC_ERROR, err.getErrorCode());
         assertEquals("Received gRPC status code: 2, msg: UNKNOWN.", err.getMessage());

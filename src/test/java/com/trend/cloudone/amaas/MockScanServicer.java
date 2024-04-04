@@ -16,64 +16,66 @@ import java.util.Random;
 import static org.junit.Assert.assertEquals;
 
 
-public class MockScanServicer extends ScanGrpc.ScanImplBase {
-    final static String IDENTIFIER_VIRUS = "virus";
-    final static String IDENTIFIER_UNKNOWN_CMD = "unknown_cmd";
-    final static String IDENTIFIER_MISMATCHED = "mismatched";
-    final static String IDENTIFIER_GRPC_ERROR = "grpc_error";
-    final static String IDENTIFIER_EXCEED_RATE = "exceed_rate";
-    final static String IDENTIFIER_CHECK_HASH = "check_hash";
-    final static Command UNKNOWN_CMD = Command.UNRECOGNIZED;
-    final static String[] MYTAGS = new String[] {"tag1" , "tag2"};
+public final class MockScanServicer extends ScanGrpc.ScanImplBase {
+    static final String IDENTIFIER_VIRUS = "virus";
+    static final String IDENTIFIER_UNKNOWN_CMD = "unknown_cmd";
+    static final String IDENTIFIER_MISMATCHED = "mismatched";
+    static final String IDENTIFIER_GRPC_ERROR = "grpc_error";
+    static final String IDENTIFIER_EXCEED_RATE = "exceed_rate";
+    static final String IDENTIFIER_CHECK_HASH = "check_hash";
+    static final Command UNKNOWN_CMD = Command.UNRECOGNIZED;
+    static final String[] MYTAGS = new String[] {"tag1", "tag2"};
 
     private static final int MAX_RUN = 5;
-    private final S2C FINAL_MSG = S2C.newBuilder()
+    private final S2C finalMsg = S2C.newBuilder()
             .setStage(Stage.STAGE_FINI)
             .setCmd(Command.CMD_QUIT)
             .build();
 
-    private int fsize = 0;
+    private long fsize = 0;
     private String identifier = "";
     private Random random = new Random();
     private int count = 0;
 
+    private int generateBoundOffset(final long upper) {
+        return random.nextInt((upper > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) upper);
+    }
 
     private S2C getS2CMsg() {
-        int start = random.nextInt(fsize);
-        int end = random.nextInt(fsize - start) + start;
+        int start = this.generateBoundOffset(fsize);
+        int end = this.generateBoundOffset(fsize - start) + start;
         return S2C.newBuilder()
                 .setStage(Stage.STAGE_RUN)
                 .setCmd(Command.CMD_RETR)
-                .setOffset(start)
-                .setLength(end - start)
+                .addBulkOffset(start)
+                .addBulkLength(end - start)
                 .build();
     }
 
 
     private S2C getUnknwonCmd() {
-        int start = random.nextInt(fsize);
-        int end = random.nextInt(fsize - start) + start;
+        int start = this.generateBoundOffset(fsize);
+        int end = this.generateBoundOffset(fsize - start) + start;
         return S2C.newBuilder()
                 .setStage(Stage.STAGE_RUN)
                 .setCmd(Command.UNRECOGNIZED)
-                .setOffset(start)
-                .setLength(end - start)
+                .addBulkOffset(start)
+                .addBulkLength(end - start)
                 .build();
     }
-    
 
     private S2C getMismatchedCmdStage() {
-        int start = random.nextInt(fsize);
-        int end = random.nextInt(fsize - start) + start;
+        int start = this.generateBoundOffset(fsize);
+        int end = this.generateBoundOffset(fsize - start) + start;
         return S2C.newBuilder()
                 .setStage(Stage.STAGE_RUN)
                 .setCmd(Command.CMD_QUIT)
-                .setOffset(start)
-                .setLength(end - start)
+                .addBulkOffset(start)
+                .addBulkLength(end - start)
                 .build();
     }
 
-    private S2C processRequest(C2S req) {
+    private S2C processRequest(final C2S req) {
         S2C msg = null;
         if (req.getStage() == Stage.STAGE_INIT) {
             this.fsize = req.getRsSize();
@@ -84,7 +86,6 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
                     assertEquals(req.getTags(indx), MYTAGS[indx]);
                 }
             }
-           
             if (this.identifier == IDENTIFIER_CHECK_HASH) {
                 String sha1 = "sha1:e4d5a3a79140b1c141f947efef6a7372c8f2bbc4";
                 String sha256 = "sha256:c24f43025bc40b53e4e5948cf69cb59498b47d2127cf358de846cda6fefccc63";
@@ -106,10 +107,10 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
             } else if (this.identifier == IDENTIFIER_EXCEED_RATE) {
                 //context.set_details("Http Error Code: 429");
                 //context.set_code(grpc.StatusCode.INTERNAL);
-                //msg = "";
-                
+                msg = null;
+
             } else if (this.count >= MAX_RUN) {
-                msg = FINAL_MSG.toBuilder()
+                msg = finalMsg.toBuilder()
                     .setResult(getResultJson())
                     .build();
             } else {
@@ -126,14 +127,14 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
     }
 
     @Override
-    public StreamObserver<C2S> run(StreamObserver<S2C> responseObserver) {
-        
+    public StreamObserver<C2S> run(final StreamObserver<S2C> responseObserver) {
+
         return new StreamObserver<C2S>() {
 
             @Override
-            public void onNext(C2S request) {
+            public void onNext(final C2S request) {
                 S2C resp = processRequest(request);
-                if (resp==null) {
+                if (resp == null) {
                     Status status = Status.INTERNAL;
                     responseObserver.onError(status.asRuntimeException());
                 }
@@ -141,7 +142,7 @@ public class MockScanServicer extends ScanGrpc.ScanImplBase {
             }
 
             @Override
-            public void onError(Throwable t) {
+            public void onError(final Throwable t) {
                 responseObserver.onError(t);
             }
 

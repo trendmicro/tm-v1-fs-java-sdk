@@ -19,10 +19,10 @@ import com.trend.cloudone.amaas.scan.ScanOuterClass;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.Stage;
 
 /**
- * AMaaS Client connecting to AMaaS gRPC server to provide API for malware scanning services. User can use the API 
+ * AMaaS Client connecting to AMaaS gRPC server to provide API for malware scanning services. User can use the API
  * to scan a file or a byte buffer.
  */
-public class AMaasClient {
+public final class AMaasClient {
     private static final Logger logger = Logger.getLogger(AMaasClient.class.getName());
     private static final long  DEFAULT_SCAN_TIMEOUT = 180;
     private static final int MAX_NUM_OF_TAGS = 8;
@@ -32,8 +32,9 @@ public class AMaasClient {
     private ScanGrpc.ScanStub asyncStub;
     private AMaasCallCredentials cred;
     private long timeoutSecs = DEFAULT_SCAN_TIMEOUT; // 3 minutes
+    private boolean bulk = true;
 
-    
+
      /**
      * AMaaSClient constructor. The enabledTLS is default to true and the appName is default to V1FS.
      * @param region region you obtained your api key
@@ -42,12 +43,12 @@ public class AMaasClient {
      * @throws AMaasException if an exception is detected, it will convert to AMassException.
      *
      */
-    public AMaasClient(String region, String apiKey, long timeoutInSecs) throws AMaasException {
+    public AMaasClient(final String region, final String apiKey, final long timeoutInSecs) throws AMaasException {
         this(region, apiKey, timeoutInSecs, true, AMaasConstants.V1FS_APP);
     }
 
     /**
-     * AMaaSClient constructor
+     * AMaaSClient constructor.
      * @param region region we obtained your api key
      * @param apiKey api key to be used
      * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
@@ -56,7 +57,7 @@ public class AMaasClient {
      * @throws AMaasException if an exception is detected, it will convert to AMassException.
      *
      */
-    public AMaasClient(String region, String apiKey, long timeoutInSecs, boolean enabledTLS, String appName) throws AMaasException {
+    public AMaasClient(final String region, final String apiKey, final long timeoutInSecs, final boolean enabledTLS, final String appName) throws AMaasException {
         String target = this.identifyHostAddr(region);
         if (target == null || target == "") {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION, region, AMaasRegion.getAllRegionsAsString());
@@ -88,16 +89,16 @@ public class AMaasClient {
         }
     }
 
-    private String identifyHostAddr(String region) {
+    private String identifyHostAddr(final String region) {
         // overwrite region setting with host setting
         String target = System.getenv("TM_AM_SERVER_ADDR");
-        if (target==null||target=="") {
+        if (target == null || target == "") {
             target = AMaasRegion.getServiceFqdn(region);
         }
         return target;
     }
 
-    private static void log(Level level, String msg, Object... params) {
+    private static void log(final Level level, final String msg, final Object... params) {
         logger.log(level, msg, params);
     }
 
@@ -114,6 +115,7 @@ public class AMaasClient {
         private Status.Code grpcStatus = Status.Code.UNKNOWN;
         private int fetchCount = 0;
         private long fetchSize = 0;
+        private boolean bulk = true;
 
         AMaasServerCallback() {
         }
@@ -123,7 +125,7 @@ public class AMaasClient {
             if (this.grpcStatus == Status.Code.UNAUTHENTICATED) {
                 err = new AMaasException(AMaasErrorCode.MSG_ID_ERR_KEY_AUTH_FAILED);
             } else {
-                err = new AMaasException( AMaasErrorCode.MSG_ID_GRPC_ERROR, this.grpcStatus.value(), this.grpcStatus.toString());
+                err = new AMaasException(AMaasErrorCode.MSG_ID_GRPC_ERROR, this.grpcStatus.value(), this.grpcStatus.toString());
             }
             return err;
         }
@@ -136,38 +138,58 @@ public class AMaasClient {
             } catch (InterruptedException err) {
                 throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_UNEXPECTED_INTERRUPT);
             }
-            
-            if (this.grpcStatus ==Status.Code.OK) {
+
+            if (this.grpcStatus == Status.Code.OK) {
                 return this.scanResult;
             } else {
                 throw this.processError();
-            } 
+            }
         }
 
-        protected void setConext(StreamObserver<ScanOuterClass.C2S> requestObserver, AMaasReader reader) {
+        protected void setContext(final StreamObserver<ScanOuterClass.C2S> requestObserver, final AMaasReader reader, final boolean bulk) {
             this.requestObserver = requestObserver;
             this.reader = reader;
             this.done = false;
+            this.bulk = bulk;
         }
 
         @Override
-        public void onNext(ScanOuterClass.S2C s2cMsg) {
-            log(Level.FINE, "Got message {0} at {1}, {2}", s2cMsg.getCmdValue(), s2cMsg.getOffset(), s2cMsg.getLength());
+        public void onNext(final ScanOuterClass.S2C s2cMsg) {
+            log(Level.FINE, "Got message {0} at {1}", s2cMsg.getCmdValue(), s2cMsg.getBulkLengthCount());
             switch (s2cMsg.getCmd()) {
                 case CMD_RETR:
-                    byte[] bytes = new byte[s2cMsg.getLength()];
-                    try {
-                        int rtnLength = reader.readBytes(s2cMsg.getOffset(), bytes);
-
-                        ByteString bytestr = ByteString.copyFrom(bytes);
-                        int curloc = s2cMsg.getOffset() + s2cMsg.getLength();
-                        this.fetchCount++;
-                        this.fetchSize += rtnLength;
-                        ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_RUN).setOffset(s2cMsg.getLength()).setChunk(bytestr).setOffset(curloc).build();
-                        requestObserver.onNext(request);
-                    } catch (IOException e) {
-                        log(Level.WARNING, "Exception when processing server message", e.getMessage());
+                    if (s2cMsg.getStage() != Stage.STAGE_RUN) {
+                        log(Level.INFO, "Received unexpected command RETR at stage {0}", s2cMsg.getStage());
                         requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                    }
+                    java.util.List<java.lang.Integer> bulkLength;
+                    java.util.List<java.lang.Integer> bulkOffset;
+                    if (this.bulk) {
+                        log(Level.FINE, "enter bulk mode");
+                        int bulkCount = s2cMsg.getBulkLengthCount();
+                        if (bulkCount > 1) {
+                          log(Level.INFO, "bulk transfer triggered");
+                        }
+                        bulkLength = s2cMsg.getBulkLengthList();
+                        bulkOffset = s2cMsg.getBulkOffsetList();
+                    } else {
+                        bulkLength = Arrays.asList(new Integer[]{s2cMsg.getLength()});
+                        bulkOffset = Arrays.asList(new Integer[]{s2cMsg.getOffset()});
+                    }
+                    for (int i = 0; i < bulkLength.size(); i++) {
+                        log(Level.INFO, "Bulk read length={0} at offset={1}", bulkLength.get(i).intValue(), bulkOffset.get(i).intValue());
+                        byte[] bytes = new byte[bulkLength.get(i).intValue()];
+                        try {
+                            int rtnLength = reader.readBytes(bulkOffset.get(i).intValue(), bytes);
+                            ByteString bytestr = ByteString.copyFrom(bytes);
+                            this.fetchCount++;
+                            this.fetchSize += rtnLength;
+                            ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_RUN).setChunk(bytestr).setOffset(bulkOffset.get(i).intValue()).build();
+                            requestObserver.onNext(request);
+                        } catch (IOException e) {
+                            log(Level.SEVERE, "Exception when processing server message", e.getMessage());
+                            requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                        }
                     }
                     break;
                 case CMD_QUIT:
@@ -182,7 +204,7 @@ public class AMaasClient {
         }
 
         @Override
-        public void onError(Throwable t) {
+        public void onError(final Throwable t) {
             log(Level.WARNING, "scan Failed: {0}", Status.fromThrowable(t));
             this.done = true;
             this.grpcStatus = Status.fromThrowable(t).getCode();
@@ -198,7 +220,7 @@ public class AMaasClient {
         }
     }
 
-    static AMaasException getTagListErrors(String[] tagList) {
+    static AMaasException getTagListErrors(final String[] tagList) {
         AMaasException except = null;
         if (tagList.length > MAX_NUM_OF_TAGS) {
             except = new AMaasException(AMaasErrorCode.MSG_ID_ERR_MAX_NUMBER_OF_TAGS, MAX_NUM_OF_TAGS);
@@ -216,24 +238,26 @@ public class AMaasClient {
     * Private method to scan a AMaasReader and return the scanned result
     *
     * @param reader AMaasReader to be scanned.
-    * @param tagList List of tags
+    * @param tagList List of tags.
+    * @param pml flag to indicate whether to use predictive machine learning detection.
+    * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    private String scanRun(AMaasReader reader, String[] tagList) throws AMaasException {
-       
+    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
+
         long fileSize = reader.getLength();
 
         AMaasServerCallback serverCallback = new AMaasServerCallback();
         StreamObserver<ScanOuterClass.C2S> requestObserver = this.asyncStub.withDeadlineAfter(this.timeoutSecs, TimeUnit.SECONDS).run(serverCallback);
-        
+
         // initialize the callback context before proceeding
-        serverCallback.setConext(requestObserver, reader);
+        serverCallback.setContext(requestObserver, reader, this.bulk);
 
         String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
 
-        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int)fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str);
+        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize(fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setTrendx(pml).setSpnFeedback(feedback).setBulk(this.bulk);
         if (tagList != null) {
             AMaasException except = getTagListErrors(tagList);
             if (except != null) {
@@ -247,58 +271,61 @@ public class AMaasClient {
 
         String scanResult = serverCallback.waitTilExit();
 
-        
         return scanResult;
-        
+
     }
 
     /**
-    * Scan a file and return the scanned result
+    * Scan a file and return the scanned result.
     *
     * @param fileName Full path of a file to be scanned.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanFile(String fileName) throws AMaasException {
-        return this.scanFile(fileName, null);
+    public String scanFile(final String fileName) throws AMaasException {
+        return this.scanFile(fileName, null, false, false);
     }
 
     /**
-    * Scan a file and return the scanned result
+    * Scan a file and return the scanned result.
     *
     * @param fileName Full path of a file to be scanned.
-    * @param tagList List of tags
+    * @param tagList List of tags.
+    * @param pml flag to indicate whether to enable predictive machine learning detection.
+    * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanFile(String fileName, String[] tagList) throws AMaasException {
+    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
         AMaasFileReader fileReader = new AMaasFileReader(fileName);
-        return this.scanRun(fileReader, tagList);
+        return this.scanRun(fileReader, tagList, pml, feedback);
     }
 
     /**
-    * Scan a buffer and return the scanned result
+    * Scan a buffer and return the scanned result.
     *
-    * @param buffer the buffer to be scanned
+    * @param buffer the buffer to be scanned.
     * @param identifier A unique name to identify the buffer.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanBuffer(byte[] buffer, String identifier) throws AMaasException {
-        return this.scanBuffer(buffer, identifier, null);
+    public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException {
+        return this.scanBuffer(buffer, identifier, null, false, false);
     }
 
     /**
-    * Scan a buffer and return the scanned result
+    * Scan a buffer and return the scanned result.
     *
-    * @param buffer the buffer to be scanned
+    * @param buffer the buffer to be scanned.
     * @param identifier A unique name to identify the buffer.
-    * @param tagList List of tags
+    * @param tagList List of tags.
+    * @param pml flag to indicate whether to use predictive machine learning detection.
+    * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanBuffer(byte[] buffer, String identifier, String[] tagList) throws AMaasException {
+    public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
         AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
-        return this.scanRun(bufReader, tagList);
+        return this.scanRun(bufReader, tagList, pml, feedback);
     }
 }

@@ -13,7 +13,7 @@ public final class AMaasException extends Exception {
      * @param erroCode error code to be reported.
      * @param params optional parameters used to format the template associated with the error code.
      */
-    public AMaasException(AMaasErrorCode erroCode, Object... params) {
+    public AMaasException(final AMaasErrorCode erroCode, final Object... params) {
         super(erroCode.getMessage(params));
         this.erroCode = erroCode;
     }
@@ -24,7 +24,7 @@ public final class AMaasException extends Exception {
      * @param cause the caught thowable object.
      * @param params optional parameters used to format the template associated with the error code.
      */
-    public AMaasException(AMaasErrorCode erroCode, Throwable cause, Object... params) {
+    public AMaasException(final AMaasErrorCode erroCode, final Throwable cause, final Object... params) {
         super(erroCode.getMessage(params), cause);
         this.erroCode = erroCode;
     }

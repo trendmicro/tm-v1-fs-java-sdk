@@ -1,4 +1,4 @@
-import java.io.File; 
+import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionService;
@@ -22,15 +22,20 @@ import org.apache.commons.cli.ParseException;
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
 
-public class ConcurrentApp {
+public final class ConcurrentApp {
     private static final Logger logger = Logger.getLogger(ConcurrentApp.class.getName());
     private static final int MAX_NUM_OF_THREADS = 5;
+    private static final int MILLISEC_PER_SEC = 1000;
+    private static final int DELAY_MILLISEC = 500;
 
-    private static void info(String msg, Object... params) {
+    private ConcurrentApp() {
+    }
+
+    private static void info(final String msg, final Object... params) {
         logger.log(Level.INFO, msg, params);
     }
 
-    public static String[] listFiles(String pathName) {
+    private static String[] listFiles(final String pathName) {
         File fObj = new File(pathName);
         if (!fObj.isDirectory()) {
             return new String[]{pathName};
@@ -45,14 +50,15 @@ public class ConcurrentApp {
      * Value object class for tracking a scan result.
      */
     private static final class ScanResult {
-        String scanResult;
-        long scanTime;
-        public ScanResult(String result, long scanTime) {
+        private String scanResult;
+        private long scanTime;
+        ScanResult(final String result, final long scanTime) {
             this.scanResult = result;
             this.scanTime = scanTime;
         }
-        @Override 
-        public String toString(){
+
+        @Override
+        public String toString() {
             return scanResult + " " + scanTime;
         }
     }
@@ -64,12 +70,12 @@ public class ConcurrentApp {
         private final String fileName;
         private final AMaasClient client;
 
-        Task(AMaasClient client, String fileName){
+        Task(final AMaasClient client, final String fileName) {
             this.fileName = fileName;
             this.client = client;
         }
-        
-        @Override 
+
+        @Override
         public ScanResult call() throws Exception {
             ScanResult result = null;
             try {
@@ -84,10 +90,10 @@ public class ConcurrentApp {
             }
             return result;
         }
-      
+
     }
 
-    static void scanFilesInParallel(AMaasClient client, String[] fList, long timeout)  {
+    static void scanFilesInParallel(final AMaasClient client, final String[] fList, final long timeout)  {
         info("Scan files in Parallel");
         int numThreads = MAX_NUM_OF_THREADS;
         if (fList.length < numThreads) {
@@ -97,14 +103,14 @@ public class ConcurrentApp {
         try {
             executor = Executors.newFixedThreadPool(numThreads);
             CompletionService<ScanResult> scanService = new ExecutorCompletionService<>(executor);
-            for(String file : fList){
+            for (String file : fList) {
                 Task task = new Task(client, file);
                 scanService.submit(task);
             }
-            
-            for(int i = 0; i < fList.length; i++){
+
+            for (int i = 0; i < fList.length; i++) {
                 Future<ScanResult> future = scanService.take();
-                ScanResult result = future.get(timeout * 1000 + 500, TimeUnit.MILLISECONDS);
+                ScanResult result = future.get(timeout * MILLISEC_PER_SEC + DELAY_MILLISEC, TimeUnit.MILLISECONDS);
                 if (result != null) {
                     info(future.get().toString());
                 }
@@ -128,16 +134,16 @@ public class ConcurrentApp {
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
         return optionList;
     }
-  
-    /*
-    * The program takes 4 options and respecive values to configure the AMaaS SDK client.
-    * @param String[]  Input options:
+
+    /**
+    * The program takes 4 options and respective values to configure the AMaaS SDK client.
+    * @param args Input options:
     *                  -f a file or a directory to be scanned
     *                  -k the API key or bearer authentication token
     *                  -r region where the key/token was applied. eg, us-east-1
     *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
     */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         String pathName = "";
         String apikey = null;
         String region = "";
@@ -160,12 +166,10 @@ public class ConcurrentApp {
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
-        
             AMaasClient client = new AMaasClient(region, apikey, timeout);
             String[] listOfFiles = listFiles(pathName);
             long totalStartTs = System.currentTimeMillis();
             scanFilesInParallel(client, listOfFiles, timeout);
-            
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);
         } catch (ParseException err) {

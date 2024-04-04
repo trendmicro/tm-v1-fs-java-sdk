@@ -6,7 +6,7 @@ import java.io.IOException;
  * Interface for implementing a reader class to be scanned.
  */
 interface AMaasReader {
-    public enum HashType {
+    enum HashType {
         HASH_SHA1,
         HASH_SHA256
     }

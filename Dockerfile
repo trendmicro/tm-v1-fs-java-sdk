@@ -25,7 +25,7 @@ COPY --chown=su-amaas:su-amaas pom.xml .
 
 COPY --chown=su-amaas:su-amaas src/ src/
 
-COPY --chown=su-amaas:su-amaas protos/scan.proto src/main/proto/
+COPY --chown=su-amaas:su-amaas protos protos/
 
 # Build java-sdk
 
