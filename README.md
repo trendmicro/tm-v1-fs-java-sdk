@@ -1,14 +1,17 @@
-# Trend Vision One File Security Java SDK User Guide
+# Trend Vision One™ File Security Java SDK User Guide
 
-The Trend Vision One File Security Java SDK empowers developers to craft applications seamlessly integrating with the cloud-based Trend Vision One anti-malware file scanning service. This ensures a thorough scan of data and artifacts within the applications, identifying potential malicious elements.
+Trend Vision One™ - File Security is a scanner app for files and cloud storage. This scanner can detect all types of malicious software (malware) including trojans, ransomware, spyware, and more. Based on fragments of previously seen malware, File Security detects obfuscated or polymorphic variants of malware.
+File Security can assess any file type or size for malware and display real-time results. With the latest file reputation and variant protection technologies backed by leading threat research, File Security automates malware scanning.
+File Security can also scan objects across your environment in any application, whether on-premises or in the cloud.
 
-This guide outlines the steps to establish your development environment and configure your project, laying the foundation for utilizing the File Security Java SDK effectively.
+The Java software development kit (SDK) for Trend Vision One™ File Security empowers you to craft applications which seamlessly integrate with File Security. With this SDK you can perform a thorough scan of data and artifacts within your applications to identify potential malicious elements.
+Follow the steps below to set up your development environment and configure your project, laying the foundation to effectively use File Security.
 
-## Prerequisites
+## Checking prerequisites
 
 - Have Java 8 and above installed in your dev/build environment.
-- Trend Vision One account with a chosen region - for more information, see the [Trend Vision One document](https://docs.trendmicro.com/en-us/enterprise/trend-micro-xdr-help/Home).
-- A Trend Vision One API key with proper role - for more information, see the [Trend Vision One API key documentation](https://docs.trendmicro.com/en-us/enterprise/trend-vision-one/administrative-setti/accountspartfoundati/api-keys.aspx).
+- Trend Vision One account with a chosen region - for more information, see the [Trend Vision One document](https://docs.trendmicro.com/en-us/documentation/article/trend-vision-one-trend-micro-xdr-abou_001).
+- A Trend Vision One API key with proper role - for more information, see the [Trend Vision One API key documentation](https://docs.trendmicro.com/en-us/documentation/article/trend-vision-one-api-keys).
 
 ## Download
 
@@ -18,9 +21,10 @@ Download the jar from [Maven Central Repository](https://mvnrepository.com/repos
 <dependency>
   <groupId>com.trend</groupId>
   <artifactId>file-security-java-sdk</artifactId>
-  <version>1.0.0</version>
+  <version>[1.1,)</version>
 </dependency>
 ```
+
 ## Obtain an API Key
 
 The File Security SDK requires a valid API Key provided as parameter to the SDK client object. It can accept Trend Vision One API keys.
@@ -32,9 +36,9 @@ If you plan on using a Trend Vision One region, be sure to pass in region parame
 1. Login to the Trend Vision One.
 2. Create a new Trend Vision One API key:
 
-* Navigate to the Trend Vision One User Roles page.
-* Verify that there is a role with the "Run file scan via SDK" permissions enabled. If not, create a role by clicking on "Add Role" and "Save" once finished.
-* Directly configure a new key on the Trend Vision One API Keys page, using the role which contains the "Run file scan via SDK" permission. It is advised to set an expiry time for the API key and make a record of it for future reference.
+- Navigate to the Trend Vision One User Roles page.
+- Verify that there is a role with the "Run file scan via SDK" permissions enabled. If not, create a role by clicking on "Add Role" and "Save" once finished.
+- Directly configure a new key on the Trend Vision One API Keys page, using the role which contains the "Run file scan via SDK" permission. It is advised to set an expiry time for the API key and make a record of it for future reference.
 
 You can manage these keys from the Trend Vision One API Keys Page.
 
@@ -57,7 +61,7 @@ public static void main(String[] args) {
         AMaasClient client = new AMaasClient("us-east-1", "your-api-key");
 
         // 2. Call ScanFile() to scan the content of a file.
-        String scanResult = client.scanFile(""path-of-file-to-scan"");
+        String scanResult = client.scanFile("path-of-file-to-scan");
 
         if (scanResult != null) {
             // 3. Print out the JSON response from ScanFile()
@@ -68,6 +72,7 @@ public static void main(String[] args) {
     }
 }
 ```
+
 ### Sample JSON Response
 
 ```json
@@ -90,11 +95,12 @@ public static void main(String[] args) {
 When malicious content is detected in the scanned object, `scanResult` will show a non-zero value. Otherwise, the value will be `null`. Moreover, when malware is detected, `foundMalwares` will be non-empty containing one or more name/value pairs of `fileName` and `malwareName`. `fileName` will be filename of malware detected while `malwareName` will be the name of the virus/malware found.
 
 ## Java SDK API Reference
+
 ### ```AmaasClient```
 
 The AmaasClient class is the main class of the SDK and provides methods to use the AMaaS scanning services.
 
-#### ```public AMaasClient(String region, String apiKey, long timeoutInSecs, boolean enabledTLS) throws AMaasException```
+#### ```public AMaasClient(final String region, final String apiKey, final long timeoutInSecs, final boolean enabledTLS) throws AMaasException```
 
 Creates a new instance of the `AmaasClient` class, and provisions essential settings, including authentication/authorization credentials (API key), preferred service region, etc.
 
@@ -102,15 +108,15 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key.  Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, etc. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. |
 | apikey        | Your own Vision One API Key.                                                              |
-| timeoutInSecs | Timeout to cancel the connection to server in seconds. 0 default to 180 seconds.         |
-| enabledTLS    | Enable or disable TLS. TLS should always be enabled when connecting to the AMaaS server. |
+| timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.         |
+| enabledTLS    | Enable or disable TLS. TLS should always be enabled when connecting to the AMaaS server. For more information, see the 'Ensuring Secure Communication with TLS' |
 
 **_Return_**
 An AmaasClient instance
 
-#### ```public AMaasClient(String region, String apiKey, long timeoutInSecs) throws AMaasException```
+#### ```public AMaasClient(final String region, final String apiKey, final long timeoutInSecs) throws AMaasException```
 
 Creates a new instance of the `AmaasClient` class, and provisions essential settings, including authentication/authorization credentials (API key), preferred service region, etc. The enabledTLS is default to true.
 
@@ -118,14 +124,14 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g.  `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, etc. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. |
 | apikey        | Your own Vision One API Key.                                                              |
-| timeoutInSecs | Timeout to cancel the connection to server in seconds. 0 default to 180 seconds.         |
+| timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.         |
 
 **_Return_**
 An AmaasClient instance
 
-#### ```public String scanFile(String fileName) throws AMaasException```
+#### ```public String scanFile(final String fileName) throws AMaasException```
 
 Scan a file for malware and retrieves response data from the API.
 
@@ -138,7 +144,7 @@ Scan a file for malware and retrieves response data from the API.
 **_Return_**
 String the scanned result in JSON format.
 
-#### ```public String scanFile(String fileName, String[] tagList) throws AMaasException```
+#### ```public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException```
 
 Scan a file for malware, add a list of tags to the scan result and retrieves response data from the API.
 
@@ -148,11 +154,13 @@ Scan a file for malware, add a list of tags to the scan result and retrieves res
 | ------------- | ---------------------------------------------------------------------------------------- |
 | fileName      | The name of the file with path of directory containing the file to scan.                 |
 | tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters.                                  |
+| pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
+| feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
 
 **_Return_**
 String the scanned result in JSON format.
 
-#### ```public String scanBuffer(byte[] buffer, String identifier) throws AMaasException```
+#### ```public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException```
 
 Scan a buffer for malware and retrieves response data from the API.
 
@@ -166,7 +174,7 @@ Scan a buffer for malware and retrieves response data from the API.
 **_Return_**
 String the scanned result in JSON format.
 
-#### ```public String scanBuffer(byte[] buffer, String identifier, String[] tagList) throws AMaasException```
+#### ```public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException```
 
 Scan a buffer for malware, add a list of tags to the scan result, and retrieves response data from the API.
 
@@ -177,6 +185,8 @@ Scan a buffer for malware, add a list of tags to the scan result, and retrieves 
 | buffer        | The byte buffer to scan.                                                                  |
 | identifier    | A unique name to identify the buffer.                                                     |
 | tagList       | A list of strings to be used to tag the scan result. At most 8 tags with maximum length of 63 characters.                                     |
+| pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
+| feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
 
 **_Return_**
 String the scanned result in JSON format.
@@ -227,11 +237,12 @@ The AMaasException class is the AMaaS SDK exception class.
 public final class AMaasException extends Exception {
   private AMaasErrorCode erroCode;
 
-  public AMaasException(AMaasErrorCode erroCode, Object... params) {
+  public AMaasException(final AMaasErrorCode erroCode, final Object... params) {
     ...
   }
 }
 ```
+
 ---
 
 ### ```AMaasErrorCode```
@@ -250,5 +261,11 @@ AMaasErrorCode is a enum type containing all the error conditions thrown by the 
 
 ## Thread Safety
 
-* scanFile() or scanBuffer() are designed to be thread-safe. It should be able to invoke scanFile() concurrently from multiple threads without protecting scanFile() with mutex or other synchronization mechanisms.
+- scanFile() or scanBuffer() are designed to be thread-safe. It should be able to invoke scanFile() concurrently from multiple threads without protecting scanFile() with mutex or other synchronization mechanisms.
 
+## Ensuring Secure Communication with TLS
+
+The communication channel between the client program or SDK and the Trend Vision One™ File Security service is fortified with robust server-side TLS encryption. This ensures that all data transmitted between the client and Trend service remains thoroughly encrypted and safeguarded.
+The certificate employed by server-side TLS is a publicly-signed certificate from Trend Micro Inc, issued by a trusted Certificate Authority (CA), further bolstering security measures.
+
+The File Security SDK consistently adopts TLS as the default communication channel, prioritizing security at all times. It is strongly advised not to disable TLS in a production environment while utilizing the File Security SDK, as doing so could compromise the integrity and confidentiality of transmitted data.

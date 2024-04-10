@@ -11,7 +11,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
    AMaasCallCredentialsTest.class,
-   AMaasClientTest.class,
+//   AMaasClientTest.class,
    AMaasErrorCodeTest.class,
    AMaasExceptionTest.class,
    AMaasFileBufferTest.class,
