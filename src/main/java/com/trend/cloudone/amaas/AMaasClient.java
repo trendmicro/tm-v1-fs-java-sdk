@@ -11,6 +11,7 @@ import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import io.grpc.stub.CallStreamObserver;
 import io.grpc.StatusRuntimeException;
 import io.grpc.TlsChannelCredentials;
 import com.google.protobuf.ByteString;
@@ -24,7 +25,7 @@ import com.trend.cloudone.amaas.scan.ScanOuterClass.Stage;
  */
 public final class AMaasClient {
     private static final Logger logger = Logger.getLogger(AMaasClient.class.getName());
-    private static final long  DEFAULT_SCAN_TIMEOUT = 180;
+    private static final long DEFAULT_SCAN_TIMEOUT = 300;
     private static final int MAX_NUM_OF_TAGS = 8;
     private static final int MAX_LENGTH_OF_TAG = 63;
 
@@ -107,6 +108,8 @@ public final class AMaasClient {
      * It implements the callback handlers of the response StreamObserver.
      */
     static class AMaasServerCallback implements StreamObserver<ScanOuterClass.S2C> {
+        private static final int POLL_TIME_MILLIS = 200;
+
         private StreamObserver<ScanOuterClass.C2S> requestObserver;
         private AMaasReader reader;
         private CountDownLatch finishCond = new CountDownLatch(1);
@@ -116,6 +119,8 @@ public final class AMaasClient {
         private int fetchCount = 0;
         private long fetchSize = 0;
         private boolean bulk = true;
+        private long start = System.currentTimeMillis();
+        private long timeoutSecs;
 
         AMaasServerCallback() {
         }
@@ -146,16 +151,19 @@ public final class AMaasClient {
             }
         }
 
-        protected void setContext(final StreamObserver<ScanOuterClass.C2S> requestObserver, final AMaasReader reader, final boolean bulk) {
+        protected void setContext(final StreamObserver<ScanOuterClass.C2S> requestObserver, final AMaasReader reader, final boolean bulk, final long timeoutSecs) {
             this.requestObserver = requestObserver;
             this.reader = reader;
             this.done = false;
             this.bulk = bulk;
+            this.timeoutSecs = timeoutSecs;
         }
 
         @Override
         public void onNext(final ScanOuterClass.S2C s2cMsg) {
             log(Level.FINE, "Got message {0} at {1}", s2cMsg.getCmdValue(), s2cMsg.getBulkLengthCount());
+            final CallStreamObserver<ScanOuterClass.C2S> callObserver = (CallStreamObserver<ScanOuterClass.C2S>) requestObserver;
+
             switch (s2cMsg.getCmd()) {
                 case CMD_RETR:
                     if (s2cMsg.getStage() != Stage.STAGE_RUN) {
@@ -185,6 +193,23 @@ public final class AMaasClient {
                             this.fetchCount++;
                             this.fetchSize += rtnLength;
                             ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_RUN).setChunk(bytestr).setOffset(bulkOffset.get(i).intValue()).build();
+
+                            while (!callObserver.isReady()) {
+                                try {
+                                    Thread.sleep(this.POLL_TIME_MILLIS);
+                                    log(Level.FINE, "stream is not ready yet, sleep {0}ms", this.POLL_TIME_MILLIS);
+                                } catch (InterruptedException e) {
+                                    log(Level.INFO, "Receive interrupt during callObserver wait, reason: " + e.getMessage());
+                                }
+
+                                long duration = System.currentTimeMillis() - this.start;
+
+                                if (TimeUnit.MILLISECONDS.toSeconds(duration) > this.timeoutSecs) {
+                                    log(Level.INFO, "DEADLINE_EXCEEDED {0}", duration);
+                                    requestObserver.onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+                                    return;
+                                }
+                            }
                             requestObserver.onNext(request);
                         } catch (IOException e) {
                             log(Level.SEVERE, "Exception when processing server message", e.getMessage());
@@ -252,7 +277,7 @@ public final class AMaasClient {
         StreamObserver<ScanOuterClass.C2S> requestObserver = this.asyncStub.withDeadlineAfter(this.timeoutSecs, TimeUnit.SECONDS).run(serverCallback);
 
         // initialize the callback context before proceeding
-        serverCallback.setContext(requestObserver, reader, this.bulk);
+        serverCallback.setContext(requestObserver, reader, this.bulk, this.timeoutSecs);
 
         String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);

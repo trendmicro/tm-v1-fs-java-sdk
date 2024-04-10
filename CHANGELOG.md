@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.1 - 2024-04-10
+* Update README.md
+* Extend the scan default timeout to 300s
+
 ## 1.1.0 - 2024-04-03
 * Update protos
 * Enable PML (Predictive Machine Learning) detection and smart feedback

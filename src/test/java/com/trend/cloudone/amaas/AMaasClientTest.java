@@ -72,7 +72,7 @@ public class AMaasClientTest {
         String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
         boolean bulk = false;
-        serverCallback.setContext(requestObserver, reader, bulk);
+        serverCallback.setContext(requestObserver, reader, bulk, TIMEOUT_SEC);
 
         ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize((int) fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setBulk(bulk);
         if (tagList != null) {
