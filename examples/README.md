@@ -46,6 +46,7 @@ There are 4 examples under the following sub-folders:
    --taglist a commas separated string of tags. e.g. dev,sdk
    --pml enable predictive machine language detection. default to false
    --feedback enable Smart Feedback of Trend Micro Smart Protection Network. default to false
+   -v enable log verbose mode. default to false
    ```
 
    For example:

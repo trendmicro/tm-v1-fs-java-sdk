@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.2.0 - 2024-08-07
+* Support verbose scan result
+
 ## 1.1.1 - 2024-04-10
 * Update README.md
 * Extend the scan default timeout to 300s

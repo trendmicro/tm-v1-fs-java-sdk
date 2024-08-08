@@ -75,6 +75,8 @@ public static void main(String[] args) {
 
 ### Sample JSON Response
 
+#### Concise Format
+
 ```json
 {
   "version": "1.0",
@@ -93,6 +95,58 @@ public static void main(String[] args) {
 ```
 
 When malicious content is detected in the scanned object, `scanResult` will show a non-zero value. Otherwise, the value will be `null`. Moreover, when malware is detected, `foundMalwares` will be non-empty containing one or more name/value pairs of `fileName` and `malwareName`. `fileName` will be filename of malware detected while `malwareName` will be the name of the virus/malware found.
+
+#### Verbose Format
+
+```json
+{
+  "scanType": "sdk",
+  "objectType": "file",
+  "timestamp": {
+    "start": "2024-07-05T20:01:21.064Z",
+    "end": "2024-07-05T20:01:21.069Z"
+  },
+  "schemaVersion": "1.0.0",
+  "scannerVersion": "1.0.0-59",
+  "fileName": "eicar.com",
+  "rsSize": 68,
+  "scanId": "40d7a38e-a1d3-400b-a09c-7aa9cd62658f",
+  "accountId": "",
+  "result": {
+    "atse": {
+      "elapsedTime": 4693,
+      "fileType": 5,
+      "fileSubType": 0,
+      "version": {
+        "engine": "23.57.0-1002",
+        "lptvpn": 385,
+        "ssaptn": 731,
+        "tmblack": 253,
+        "tmwhite": 239,
+        "macvpn": 914
+      },
+      "malwareCount": 1,
+      "malware": [
+        {
+          "name": "Eicar_test_file",
+          "fileName": "eicar.com",
+          "type": "",
+          "fileType": 5,
+          "fileSubType": 0,
+          "fileTypeName": "COM",
+          "fileSubTypeName": "VSDT_COM_DOS"
+        }
+      ],
+      "error": null,
+      "fileTypeName": "COM",
+      "fileSubTypeName": "VSDT_COM_DOS"
+    }
+  },
+  "fileSHA1": "3395856ce81f2b7382dee72602f798b642f14140",
+  "fileSHA256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+  "appName": "V1FS"
+}
+```
 
 ## Java SDK API Reference
 
@@ -144,7 +198,7 @@ Scan a file for malware and retrieves response data from the API.
 **_Return_**
 String the scanned result in JSON format.
 
-#### ```public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException```
+#### ```public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException```
 
 Scan a file for malware, add a list of tags to the scan result and retrieves response data from the API.
 
@@ -156,6 +210,7 @@ Scan a file for malware, add a list of tags to the scan result and retrieves res
 | tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters.                                  |
 | pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
 | feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
+| verbose       | A flag to enable log verbose mode.                                                       |
 
 **_Return_**
 String the scanned result in JSON format.
@@ -174,7 +229,7 @@ Scan a buffer for malware and retrieves response data from the API.
 **_Return_**
 String the scanned result in JSON format.
 
-#### ```public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException```
+#### ```public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException```
 
 Scan a buffer for malware, add a list of tags to the scan result, and retrieves response data from the API.
 
@@ -187,6 +242,7 @@ Scan a buffer for malware, add a list of tags to the scan result, and retrieves 
 | tagList       | A list of strings to be used to tag the scan result. At most 8 tags with maximum length of 63 characters.                                     |
 | pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
 | feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
+| verbose       | A flag to enable log verbose mode.                                                        |
 
 **_Return_**
 String the scanned result in JSON format.
@@ -207,7 +263,7 @@ public class AmaasScanResult {
   private String fileName:              // Name of the file scanned
   private MalwareItem[] foundMalwares;  // A list of malware names and the filenames found by AMaaS
 
-  // getter and seter methods for the above private variables.
+  // getter and setter methods for the above private variables.
 }
 ```
 
@@ -223,7 +279,32 @@ public class MalwareItem {
   private String malwareName;           // A detected Malware name
   private String fileName:              // File name that the malware is detected.
 
-  // getter and seter methods for the above private variables.
+  // getter and setter methods for the above private variables.
+}
+```
+
+### ```AMaasScanResultVerbose```
+
+The AMaasScanResultVerbose has the data elements of the response data in verbose mode that is retrieved from our API. The class has the following private members. There are getter and setter methods for each of the members. See javaDoc for the class of each data element.
+
+```java
+public class AMaasScanResultVerbose {
+    private String scanType;          // Type of scan
+    private String objectType;        // Type of the object being scanned. e.g, file
+    private StartEnd timestamp;       // begin and end time strings in ISO 8601 format
+    private String schemaVersion;     // Version of the data schema
+    private String scannerVersion;    // Scanner version
+    private String fileName;          // Name of the file
+    private long rsSize;              // Size of the scanned file
+    private String scanId;            // ID of the scan
+    private String accountId;         // ID of the customer
+    private ScanResult result;        // Result for the current scan
+    private String[] tags;            // Tags used for this scan
+    private String fileSha1;          // Sha1 of the scanned file
+    private String fileSha256;        // Sha256 of the scanned file
+    private String appName;           // Name of the application
+
+    // getter and setter methods for the above private variables.
 }
 ```
 
