@@ -19,6 +19,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
    AMaasRegionTest.class,
    AMaasScanResultTest.class,
    MalwareItemTest.class,
+   AMaasScanResultVerboseTest.class,
 })
 
 

@@ -34,12 +34,12 @@ public final class App {
             .collect(Collectors.toList()).toArray(new String[] {});
     }
 
-    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag) {
+    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag, final boolean verbose) {
         for (String fileName: fList) {
             try {
                 info("===============> Scanning file {0}", fileName);
                 long startTS = System.currentTimeMillis();
-                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag);
+                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag, verbose);
                 long endTS = System.currentTimeMillis();
                 info("{0}", scanResult);
                 info("===============> File scan time {0}", endTS - startTS);
@@ -58,6 +58,7 @@ public final class App {
         optionList.addOption(null, "taglist", true, "commas separated string of tags.e.g, sdk,dev");
         optionList.addOption(null, "pml", true, "Enable predictive machine language detection");
         optionList.addOption(null, "feedback", true, "Enable Trend Smart Protection Network's Smart Feedback");
+        optionList.addOption("v", "verbose", true, "Enable log verbose mode");
         return optionList;
     }
 
@@ -71,6 +72,7 @@ public final class App {
      *                  --taglist a commas separated string of tags. e.g. dev,sdk
      *                  --pml enable predictive machine language detection. default to false
      *                  --feedback enable Trend Micro Smart Protection Network's Smart Feedback. default to false
+     *                  -v enable log verbose mode. default to false
      */
     public static void main(final String[] args) {
         String pathname = "";
@@ -80,6 +82,7 @@ public final class App {
         String tags = null;
         boolean pmlFlag = false;
         boolean feedbackFlag = false;
+        boolean verbose = false;
 
         DefaultParser parser = new DefaultParser();
         HelpFormatter helper = new HelpFormatter();
@@ -111,6 +114,11 @@ public final class App {
                     feedbackFlag = true;
                 }
             }
+            if (cmd.hasOption("v")) {
+                if (cmd.getOptionValue("v").equals("true")) {
+                    verbose = true;
+                }
+            }
             String[] tagList = null;
             if (tags != null) {
                 info("tags to used {0}", tags);
@@ -121,7 +129,7 @@ public final class App {
             String[] listOfFiles = listFiles(pathname);
             long totalStartTs = System.currentTimeMillis();
 
-            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag);
+            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose);
 
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);

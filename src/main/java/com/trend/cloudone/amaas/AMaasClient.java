@@ -53,7 +53,7 @@ public final class AMaasClient {
      * @param region region we obtained your api key
      * @param apiKey api key to be used
      * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
-     * @param enabledTLS boolean flag ro enable or disable TLS
+     * @param enabledTLS boolean flag to enable or disable TLS
      * @param appName application name to use.
      * @throws AMaasException if an exception is detected, it will convert to AMassException.
      *
@@ -266,10 +266,11 @@ public final class AMaasClient {
     * @param tagList List of tags.
     * @param pml flag to indicate whether to use predictive machine learning detection.
     * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
+    * @param verbose flag to enable log verbose mode
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
+    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
 
         long fileSize = reader.getLength();
 
@@ -282,7 +283,7 @@ public final class AMaasClient {
         String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
 
-        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize(fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setTrendx(pml).setSpnFeedback(feedback).setBulk(this.bulk);
+        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize(fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setTrendx(pml).setSpnFeedback(feedback).setBulk(this.bulk).setVerbose(verbose);
         if (tagList != null) {
             AMaasException except = getTagListErrors(tagList);
             if (except != null) {
@@ -308,7 +309,24 @@ public final class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanFile(final String fileName) throws AMaasException {
-        return this.scanFile(fileName, null, false, false);
+        return this.scanFile(fileName, null, false, false, false);
+    }
+
+    /**
+    * Scan a file and return the scanned result.
+    *
+    * @deprecated
+    * @param fileName Full path of a file to be scanned.
+    * @param tagList List of tags.
+    * @param pml flag to indicate whether to enable predictive machine learning detection.
+    * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
+    * @return String the scanned result in JSON format.
+    * @throws AMaasException if an exception is detected, it will convert to AMassException.
+    */
+    @Deprecated
+    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
+        AMaasFileReader fileReader = new AMaasFileReader(fileName);
+        return this.scanRun(fileReader, tagList, pml, feedback, false);
     }
 
     /**
@@ -318,12 +336,13 @@ public final class AMaasClient {
     * @param tagList List of tags.
     * @param pml flag to indicate whether to enable predictive machine learning detection.
     * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
+    * @param verbose flag to enable log verbose mode
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
+    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
         AMaasFileReader fileReader = new AMaasFileReader(fileName);
-        return this.scanRun(fileReader, tagList, pml, feedback);
+        return this.scanRun(fileReader, tagList, pml, feedback, verbose);
     }
 
     /**
@@ -335,11 +354,11 @@ public final class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException {
-        return this.scanBuffer(buffer, identifier, null, false, false);
+        return this.scanBuffer(buffer, identifier, null, false, false, false);
     }
 
     /**
-    * Scan a buffer and return the scanned result.
+    * Scan a buffer and return the scanned result. (TBD: LSK remove this API).
     *
     * @param buffer the buffer to be scanned.
     * @param identifier A unique name to identify the buffer.
@@ -351,6 +370,23 @@ public final class AMaasClient {
     */
     public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
         AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
-        return this.scanRun(bufReader, tagList, pml, feedback);
+        return this.scanRun(bufReader, tagList, pml, feedback, false);
+    }
+
+    /**
+    * Scan a buffer and return the scanned result.
+    *
+    * @param buffer the buffer to be scanned.
+    * @param identifier A unique name to identify the buffer.
+    * @param tagList List of tags.
+    * @param pml flag to indicate whether to use predictive machine learning detection.
+    * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
+    * @param verbose flag to enable log verbose mode
+    * @return String the scanned result in JSON format.
+    * @throws AMaasException if an exception is detected, it will convert to AMassException.
+    */
+    public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
+        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
+        return this.scanRun(bufReader, tagList, pml, feedback, verbose);
     }
 }
