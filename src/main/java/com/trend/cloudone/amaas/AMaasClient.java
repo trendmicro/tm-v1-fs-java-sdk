@@ -1,19 +1,21 @@
 package com.trend.cloudone.amaas;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import io.grpc.Grpc;
-import io.grpc.InsecureChannelCredentials;
+import javax.net.ssl.SSLException;
 import io.grpc.ManagedChannel;
+import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.stub.CallStreamObserver;
 import io.grpc.StatusRuntimeException;
-import io.grpc.TlsChannelCredentials;
 import com.google.protobuf.ByteString;
 import com.trend.cloudone.amaas.scan.ScanGrpc;
 import com.trend.cloudone.amaas.scan.ScanOuterClass;
@@ -45,11 +47,12 @@ public final class AMaasClient {
      *
      */
     public AMaasClient(final String region, final String apiKey, final long timeoutInSecs) throws AMaasException {
-        this(region, apiKey, timeoutInSecs, true, AMaasConstants.V1FS_APP);
+        this(region, null, apiKey, timeoutInSecs, true, null);
     }
 
     /**
      * AMaaSClient constructor.
+     * @deprecated
      * @param region region we obtained your api key
      * @param apiKey api key to be used
      * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
@@ -58,20 +61,58 @@ public final class AMaasClient {
      * @throws AMaasException if an exception is detected, it will convert to AMassException.
      *
      */
+    @Deprecated
     public AMaasClient(final String region, final String apiKey, final long timeoutInSecs, final boolean enabledTLS, final String appName) throws AMaasException {
-        String target = this.identifyHostAddr(region);
+        this(region, null, apiKey, timeoutInSecs, enabledTLS, null);
+    }
+
+    /**
+     * AMaaSClient constructor.
+     * @param region region we obtained your api key. If host is given, region is ignored.
+     * @param host AMaas scanner host address. Null if to use Trend AMaaS service specified in region.
+     * @param apiKey api key to be used
+     * @param timeoutInSecs number in seconds to wait for a scan. 0 default to 180 seconds.
+     * @param enabledTLS boolean flag to enable or disable TLS
+     * @param caCertPath File path of the CA certificate for hosted AMaaS Scanner server. null if using Trend AMaaS service.
+     * @throws AMaasException if an exception is detected, it will convert to AMassException.
+     *
+     */
+    public AMaasClient(final String region, final String host, final String apiKey, final long timeoutInSecs, final boolean enabledTLS, final String caCertPath) throws AMaasException {
+        String target = this.identifyHostAddr(region, host);
         if (target == null || target == "") {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION, region, AMaasRegion.getAllRegionsAsString());
         }
         if (enabledTLS) {
             log(Level.FINE, "Using prod grpc service {0}", target);
-            this.channel = Grpc.newChannelBuilder(target, TlsChannelCredentials.create()).build();
+            if (caCertPath != null && !caCertPath.isEmpty()) {
+                // Bring Your Own Certificate case
+                try {
+                    File certFile = Paths.get(caCertPath).toFile();
+                    this.channel = NettyChannelBuilder.forTarget(target)
+                            .sslContext(GrpcSslContexts.forClient().trustManager(certFile).build())
+                            .build();
+                } catch (SSLException | UnsupportedOperationException e) {
+                    throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
+                }
+            } else {
+                // Default SSL credentials case
+                try {
+                    log(Level.FINE, "Using prod grpc service {0}", target);
+                    this.channel = NettyChannelBuilder.forTarget(target)
+                            .sslContext(GrpcSslContexts.forClient().build())
+                            .build();
+                } catch (SSLException e) {
+                    throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
+                }
+            }
         } else {
-            log(Level.FINE, "Using local grpc service");
-            this.channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+            log(Level.FINE, "Using grpc service with TLS disenabled {0}", target);
+            this.channel = NettyChannelBuilder.forTarget(target)
+                    .usePlaintext()
+                    .build();
         }
         if (apiKey != null) {
-            this.cred = new AMaasCallCredentials(apiKey, appName);
+            this.cred = new AMaasCallCredentials(apiKey, AMaasConstants.V1FS_APP);
         } else {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_MISSING_AUTH);
         }
@@ -90,7 +131,11 @@ public final class AMaasClient {
         }
     }
 
-    private String identifyHostAddr(final String region) {
+    private String identifyHostAddr(final String region, final String host) {
+        if (host != null && !host.isEmpty()) {
+            return host;
+        }
+        // TBD: keep this to pass BVT. Remove in next PR
         // overwrite region setting with host setting
         String target = System.getenv("TM_AM_SERVER_ADDR");
         if (target == null || target == "") {
@@ -267,10 +312,11 @@ public final class AMaasClient {
     * @param pml flag to indicate whether to use predictive machine learning detection.
     * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @param verbose flag to enable log verbose mode
+    * @param digest flag to enable calculation of digests for cache search and result lookup.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
+    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
 
         long fileSize = reader.getLength();
 
@@ -282,6 +328,7 @@ public final class AMaasClient {
 
         String sha1Str = reader.getHash(AMaasReader.HashType.HASH_SHA1);
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
+        log(Level.FINE, "sha1={0} sha256={1}", sha1Str, sha256Str);
 
         ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize(fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setTrendx(pml).setSpnFeedback(feedback).setBulk(this.bulk).setVerbose(verbose);
         if (tagList != null) {
@@ -309,7 +356,7 @@ public final class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanFile(final String fileName) throws AMaasException {
-        return this.scanFile(fileName, null, false, false, false);
+        return this.scanFile(fileName, null, false, false, false, true);
     }
 
     /**
@@ -325,8 +372,8 @@ public final class AMaasClient {
     */
     @Deprecated
     public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
-        AMaasFileReader fileReader = new AMaasFileReader(fileName);
-        return this.scanRun(fileReader, tagList, pml, feedback, false);
+        AMaasFileReader fileReader = new AMaasFileReader(fileName, true);
+        return this.scanRun(fileReader, tagList, pml, feedback, false, true);
     }
 
     /**
@@ -337,12 +384,13 @@ public final class AMaasClient {
     * @param pml flag to indicate whether to enable predictive machine learning detection.
     * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @param verbose flag to enable log verbose mode
+    * @param digest flag to enable calculation of digests for cache search and result lookup.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
-        AMaasFileReader fileReader = new AMaasFileReader(fileName);
-        return this.scanRun(fileReader, tagList, pml, feedback, verbose);
+    public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        AMaasFileReader fileReader = new AMaasFileReader(fileName, digest);
+        return this.scanRun(fileReader, tagList, pml, feedback, verbose, digest);
     }
 
     /**
@@ -354,12 +402,13 @@ public final class AMaasClient {
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
     public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException {
-        return this.scanBuffer(buffer, identifier, null, false, false, false);
+        return this.scanBuffer(buffer, identifier, null, false, false, false, true);
     }
 
     /**
     * Scan a buffer and return the scanned result. (TBD: LSK remove this API).
     *
+    * @deprecated
     * @param buffer the buffer to be scanned.
     * @param identifier A unique name to identify the buffer.
     * @param tagList List of tags.
@@ -368,9 +417,10 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
-        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
-        return this.scanRun(bufReader, tagList, pml, feedback, false);
+        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier, true);
+        return this.scanRun(bufReader, tagList, pml, feedback, false, true);
     }
 
     /**
@@ -382,11 +432,12 @@ public final class AMaasClient {
     * @param pml flag to indicate whether to use predictive machine learning detection.
     * @param feedback flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback.
     * @param verbose flag to enable log verbose mode
+    * @param digest flag to enable calculation of digests for cache search and result lookup.
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException {
-        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier);
-        return this.scanRun(bufReader, tagList, pml, feedback, verbose);
+    public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier, digest);
+        return this.scanRun(bufReader, tagList, pml, feedback, verbose, digest);
     }
 }

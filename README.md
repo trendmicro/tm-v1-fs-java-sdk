@@ -154,7 +154,7 @@ When malicious content is detected in the scanned object, `scanResult` will show
 
 The AmaasClient class is the main class of the SDK and provides methods to use the AMaaS scanning services.
 
-#### ```public AMaasClient(final String region, final String apiKey, final long timeoutInSecs, final boolean enabledTLS) throws AMaasException```
+#### ```public AMaasClient(final String region, final String host, final String apiKey, final long timeoutInSecs, final boolean enabledTLS, final string caCert) throws AMaasException```
 
 Creates a new instance of the `AmaasClient` class, and provisions essential settings, including authentication/authorization credentials (API key), preferred service region, etc.
 
@@ -162,10 +162,12 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. If host is given, region will be ignored. |
+| host          | The host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service    |
 | apikey        | Your own Vision One API Key.                                                              |
 | timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.         |
 | enabledTLS    | Enable or disable TLS. TLS should always be enabled when connecting to the AMaaS server. For more information, see the 'Ensuring Secure Communication with TLS' |
+| caCert        | File path of the CA certificate for hosted AMaaS Scanner server. null if using Trend AMaaS service.                  |
 
 **_Return_**
 An AmaasClient instance
@@ -211,6 +213,7 @@ Scan a file for malware, add a list of tags to the scan result and retrieves res
 | pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
 | feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
 | verbose       | A flag to enable log verbose mode.                                                       |
+| digest        | A flag to enable/disable calculation of digests for cache search and result lookup.      |
 
 **_Return_**
 String the scanned result in JSON format.
@@ -243,6 +246,7 @@ Scan a buffer for malware, add a list of tags to the scan result, and retrieves 
 | pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
 | feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
 | verbose       | A flag to enable log verbose mode.                                                        |
+| digest        | A flag to enable/disable calculation of digests for cache search and result lookup.       |
 
 **_Return_**
 String the scanned result in JSON format.

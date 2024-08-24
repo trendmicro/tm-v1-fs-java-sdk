@@ -12,16 +12,18 @@ final class AMaasBufferReader extends AMaasBaseReader {
     private String identifier;
     private byte[] readerBuf;
 
-    AMaasBufferReader(final byte[] byteBuf, final String identifier) throws AMaasException {
+    AMaasBufferReader(final byte[] byteBuf, final String identifier, final boolean digest) throws AMaasException {
         this.readerBuf = byteBuf;
         this.identifier = identifier;
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA1");
-            this.setHash(HashType.HASH_SHA1, md.digest(this.readerBuf));
-            md = MessageDigest.getInstance("SHA-256");
-            this.setHash(HashType.HASH_SHA256, md.digest(this.readerBuf));
-        } catch (NoSuchAlgorithmException err) {
-            // this exception is not possible as the algorithms are hard coded.
+        if (digest) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA1");
+                this.setHash(HashType.HASH_SHA1, md.digest(this.readerBuf));
+                md = MessageDigest.getInstance("SHA-256");
+                this.setHash(HashType.HASH_SHA256, md.digest(this.readerBuf));
+            } catch (NoSuchAlgorithmException err) {
+                // this exception is not possible as the algorithms are hard coded.
+            }
         }
     }
 
