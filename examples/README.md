@@ -42,11 +42,14 @@ There are 4 examples under the following sub-folders:
    -f a file or a directory to be scanned
    -k customer Vision One API key
    -r region where the Vision One API key was obtained. eg, us-east-1
+   -a host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service
    -t optional client maximum waiting time in seconds for a scan. 0 or missing will default to 180 seconds.
-   --taglist a commas separated string of tags. e.g. dev,sdk
+   --tags a commas separated string of tags. e.g. dev,sdk
    --pml enable predictive machine language detection. default to false
    --feedback enable Smart Feedback of Trend Micro Smart Protection Network. default to false
    -v enable log verbose mode. default to false
+   --ca_cert File path of the CA certificate for hosted AMaaS Scanner server. ignore if using Trend AMaaS service.
+   --digest Flag to enable/disable calculation of digests for cache search and result lookup.
    ```
 
    For example:

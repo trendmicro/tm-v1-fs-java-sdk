@@ -88,7 +88,7 @@ public class AMaasClientTest {
     public void testGrpcClientRetrieveCorrectly() {
         try {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
-            AMaasFileReader reader = new AMaasFileReader(DataFileCreator.TEST_DATA_FILE_NAME);
+            AMaasFileReader reader = new AMaasFileReader(DataFileCreator.TEST_DATA_FILE_NAME, true);
             this.prepareTestObj(serverCallback, reader, null);
 
             String scanResultjson = serverCallback.waitTilExit();
@@ -107,7 +107,7 @@ public class AMaasClientTest {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
             String str = "This is a very long long long test";
             byte[] data = str.getBytes();
-            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_CHECK_HASH);
+            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_CHECK_HASH, true);
             this.prepareTestObj(serverCallback, reader, null);
 
             String scanResultjson = serverCallback.waitTilExit();
@@ -125,7 +125,7 @@ public class AMaasClientTest {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
             String str = "This is a very long long long test error";
             byte[] data = str.getBytes();
-            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_CHECK_HASH);
+            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_CHECK_HASH, true);
             this.prepareTestObj(serverCallback, reader, null);
 
             String scanResultjson = serverCallback.waitTilExit();
@@ -145,7 +145,7 @@ public class AMaasClientTest {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
             Path path = Paths.get(DataFileCreator.TEST_DATA_FILE_NAME);
             byte[] data = Files.readAllBytes(path);
-            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_VIRUS);
+            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_VIRUS, true);
             this.prepareTestObj(serverCallback, reader, null);
 
             String scanResultjson = serverCallback.waitTilExit();
@@ -169,7 +169,7 @@ public class AMaasClientTest {
         String region = "aa-1";
         exceptionRule.expect(AMaasException.class);
         exceptionRule.expectMessage(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION.getMessage(region, AMaasRegion.getAllRegionsAsString()));
-        new AMaasClient(region, "AAAPPPKet", (long) TIMEOUT_SEC, false, AMaasConstants.V1FS_APP);
+        new AMaasClient(region, null, "AAAPPPKet", (long) TIMEOUT_SEC, false, null);
     }
 
 
@@ -177,7 +177,7 @@ public class AMaasClientTest {
     public void testMissingAuthentication() throws Exception {
         exceptionRule.expect(AMaasException.class);
         exceptionRule.expectMessage(AMaasErrorCode.MSG_ID_ERR_MISSING_AUTH.getMessage());
-        new AMaasClient("us-east-1", null, (long) TIMEOUT_SEC, false, AMaasConstants.V1FS_APP);
+        new AMaasClient("us-east-1", null, null, (long) TIMEOUT_SEC, false, null);
     }
 
 
@@ -187,7 +187,7 @@ public class AMaasClientTest {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
             Path path = Paths.get(DataFileCreator.TEST_DATA_FILE_NAME);
             byte[] data = Files.readAllBytes(path);
-            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_UNKNOWN_CMD);
+            AMaasBufferReader reader = new AMaasBufferReader(data, MockScanServicer.IDENTIFIER_UNKNOWN_CMD, true);
             this.prepareTestObj(serverCallback, reader, null);
 
             String scanResultjson = serverCallback.waitTilExit();
@@ -210,7 +210,7 @@ public class AMaasClientTest {
             AMaasClient.AMaasServerCallback serverCallback = new AMaasClient.AMaasServerCallback();
             Path path = Paths.get(DataFileCreator.TEST_DATA_FILE_NAME);
             byte[] data = Files.readAllBytes(path);
-            AMaasBufferReader reader = new AMaasBufferReader(data, "test");
+            AMaasBufferReader reader = new AMaasBufferReader(data, "test", true);
             this.prepareTestObj(serverCallback, reader, MockScanServicer.MYTAGS);
 
             String scanResultjson = serverCallback.waitTilExit();

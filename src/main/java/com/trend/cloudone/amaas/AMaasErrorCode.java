@@ -52,7 +52,12 @@ public enum AMaasErrorCode {
     /**
      * Java SDK client has an unexpected interrupt.
      */
-    MSG_ID_ERR_UNEXPECTED("MSG_ID_ERR_UNEXPECTED", "Unexpected error encountered.");
+    MSG_ID_ERR_UNEXPECTED("MSG_ID_ERR_UNEXPECTED", "Unexpected error encountered."),
+
+    /**
+     * Java SDK client has failed to load given CA certificate.
+     */
+    MSG_ID_ERR_LOAD_SSL_CERT("MSG_ID_ERR_LOAD_SSL_CERT", "Failed to load SSL certificate.");
 
 
     private final String errorCode;
