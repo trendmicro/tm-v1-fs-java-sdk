@@ -34,12 +34,12 @@ public final class App {
             .collect(Collectors.toList()).toArray(new String[] {});
     }
 
-    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag, final boolean verbose) {
+    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag, final boolean verbose, final boolean digest) {
         for (String fileName: fList) {
             try {
                 info("===============> Scanning file {0}", fileName);
                 long startTS = System.currentTimeMillis();
-                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag, verbose);
+                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag, verbose, digest);
                 long endTS = System.currentTimeMillis();
                 info("{0}", scanResult);
                 info("===============> File scan time {0}", endTS - startTS);
@@ -53,12 +53,15 @@ public final class App {
         Options optionList = new Options();
         optionList.addRequiredOption("f", "filename", true, "File path or folder to be scanned");
         optionList.addRequiredOption("k", "apikey", true, "Cloud One API key");
-        optionList.addRequiredOption("r", "region", true, "AMaaS service region");
+        optionList.addRequiredOption("r", "region", true, "AMaaS service region to used. Ignore if self hosted.");
+        optionList.addOption("a", "addr", true, "host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service");
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
-        optionList.addOption(null, "taglist", true, "commas separated string of tags.e.g, sdk,dev");
+        optionList.addOption(null, "tags", true, "commas separated string of tags.e.g, sdk,dev");
         optionList.addOption(null, "pml", true, "Enable predictive machine language detection");
         optionList.addOption(null, "feedback", true, "Enable Trend Smart Protection Network's Smart Feedback");
         optionList.addOption("v", "verbose", true, "Enable log verbose mode");
+        optionList.addOption(null, "ca_cert", true, "CA Certificate of hosted AMaaS Scanner server");
+        optionList.addOption(null, "digest", true, "Enable/Disable calculation of digests for cache search and result lookup");
         return optionList;
     }
 
@@ -67,22 +70,28 @@ public final class App {
      * @param args Input options:
      *                  -f a file or a directory to be scanned
      *                  -k the API key or bearer authentication token
-     *                  -r region where the key/token was applied. eg, us-east-1
+     *                  -r region where the Vision One API key was obtained. eg, us-east-1. If host is given, region value will be ignored.
+     *                  -a host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service.
      *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
-     *                  --taglist a commas separated string of tags. e.g. dev,sdk
+     *                  --tags a commas separated string of tags. e.g. dev,sdk
      *                  --pml enable predictive machine language detection. default to false
      *                  --feedback enable Trend Micro Smart Protection Network's Smart Feedback. default to false
      *                  -v enable log verbose mode. default to false
+     *                  --ca_cert CA certificate of self hosted AMaaS server
+     *                  --digest Enable/Disable calculation of digests for cache search and result lookup
      */
     public static void main(final String[] args) {
         String pathname = "";
         String apikey = null;
         String region = "";
+        String addr = "";
         long timeout = 0;
         String tags = null;
         boolean pmlFlag = false;
         boolean feedbackFlag = false;
         boolean verbose = false;
+        String caCertPath = null;
+        boolean digest = true;
 
         DefaultParser parser = new DefaultParser();
         HelpFormatter helper = new HelpFormatter();
@@ -92,17 +101,20 @@ public final class App {
             if (cmd.hasOption("f")) {
                 pathname = cmd.getOptionValue("f");
             }
-            if (cmd.hasOption("r")) {
+            if (cmd.hasOption("k")) {
                 apikey = cmd.getOptionValue("k");
             }
-            if (cmd.hasOption("k")) {
+            if (cmd.hasOption("r")) {
                 region = cmd.getOptionValue("r");
+            }
+            if (cmd.hasOption("a")) {
+                addr = cmd.getOptionValue("a");
             }
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
-            if (cmd.hasOption("taglist")) {
-                tags = cmd.getOptionValue("taglist");
+            if (cmd.hasOption("tags")) {
+                tags = cmd.getOptionValue("tags");
             }
             if (cmd.hasOption("pml")) {
                 if (cmd.getOptionValue("pml").equals("true")) {
@@ -119,17 +131,25 @@ public final class App {
                     verbose = true;
                 }
             }
+            if (cmd.hasOption("ca_cert")) {
+                caCertPath = cmd.getOptionValue("ca_cert");
+            }
+            if (cmd.hasOption("digest")) {
+                if (cmd.getOptionValue("digest").equals("false")) {
+                    digest = false;
+                }
+            }
             String[] tagList = null;
             if (tags != null) {
                 info("tags to used {0}", tags);
                 tagList = tags.split(",");
             }
 
-            AMaasClient client = new AMaasClient(region, apikey, timeout);
+            AMaasClient client = new AMaasClient(region, addr, apikey, timeout, true, caCertPath);
             String[] listOfFiles = listFiles(pathname);
             long totalStartTs = System.currentTimeMillis();
 
-            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose);
+            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose, digest);
 
             long totalEndTs = System.currentTimeMillis();
             info("*************** Total scan time {0}", totalEndTs - totalStartTs);

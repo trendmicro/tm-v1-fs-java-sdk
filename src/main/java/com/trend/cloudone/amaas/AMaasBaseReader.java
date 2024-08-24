@@ -24,11 +24,11 @@ public abstract class AMaasBaseReader implements AMaasReader {
     public final String getHash(final HashType htype) {
         switch (htype) {
             case HASH_SHA1:
-                return "sha1:" + bytesToHex(this.sha1);
+                return (this.sha1 == null) ? "" : "sha1:" + bytesToHex(this.sha1);
             case HASH_SHA256:
-                return "sha256:" + bytesToHex(this.sha256);
+                return (this.sha256 == null) ? "" : "sha256:" + bytesToHex(this.sha256);
             default:
-                return null;
+                return "";
         }
     }
 
