@@ -16,6 +16,8 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.stub.CallStreamObserver;
 import io.grpc.StatusRuntimeException;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.SslContext;
 import com.google.protobuf.ByteString;
 import com.trend.cloudone.amaas.scan.ScanGrpc;
 import com.trend.cloudone.amaas.scan.ScanOuterClass;
@@ -84,27 +86,34 @@ public final class AMaasClient {
         }
         if (enabledTLS) {
             log(Level.FINE, "Using prod grpc service {0}", target);
-            if (caCertPath != null && !caCertPath.isEmpty()) {
-                // Bring Your Own Certificate case
-                try {
-                    File certFile = Paths.get(caCertPath).toFile();
-                    this.channel = NettyChannelBuilder.forTarget(target)
-                            .sslContext(GrpcSslContexts.forClient().trustManager(certFile).build())
-                            .build();
-                } catch (SSLException | UnsupportedOperationException e) {
-                    throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
+            String verifyCertEnv = System.getenv("TM_AM_DISABLE_CERT_VERIFY");
+            boolean verifyCert = !("1".equals(verifyCertEnv));
+            SslContext context;
+
+            try {
+                if (!verifyCert) {
+                    // Bypassing certificate verification
+                    log(Level.FINE, "Bypassing certificate verification");
+                    context = GrpcSslContexts.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                } else {
+                    if (caCertPath != null && !caCertPath.isEmpty()) {
+                        // Bring Your Own Certificate case
+                        log(Level.FINE, "Using certificate {0}", caCertPath);
+                        File certFile = Paths.get(caCertPath).toFile();
+                        context = GrpcSslContexts.forClient().trustManager(certFile).build();
+                    } else {
+                        // Default SSL credentials case
+                        log(Level.FINE, "Using default certificate");
+                        context = GrpcSslContexts.forClient().build();
+                    }
                 }
-            } else {
-                // Default SSL credentials case
-                try {
-                    log(Level.FINE, "Using prod grpc service {0}", target);
-                    this.channel = NettyChannelBuilder.forTarget(target)
-                            .sslContext(GrpcSslContexts.forClient().build())
-                            .build();
-                } catch (SSLException e) {
-                    throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
-                }
+            } catch (SSLException | UnsupportedOperationException e) {
+                throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
             }
+
+            this.channel = NettyChannelBuilder.forTarget(target)
+                            .sslContext(context)
+                            .build();
         } else {
             log(Level.FINE, "Using grpc service with TLS disenabled {0}", target);
             this.channel = NettyChannelBuilder.forTarget(target)
