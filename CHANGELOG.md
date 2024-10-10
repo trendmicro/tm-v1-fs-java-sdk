@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.4.2 - 2024-10-10
+
+* Update dependencies: protobuf-java, protobuf-java-util, grpc-netty
+
 ## 1.4.1 - 2024-08-28
 
 * Support certificate verification bypass using environment variable
