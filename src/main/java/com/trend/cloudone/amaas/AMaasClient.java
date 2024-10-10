@@ -144,13 +144,7 @@ public final class AMaasClient {
         if (host != null && !host.isEmpty()) {
             return host;
         }
-        // TBD: keep this to pass BVT. Remove in next PR
-        // overwrite region setting with host setting
-        String target = System.getenv("TM_AM_SERVER_ADDR");
-        if (target == null || target == "") {
-            target = AMaasRegion.getServiceFqdn(region);
-        }
-        return target;
+        return AMaasRegion.getServiceFqdn(region);
     }
 
     private static void log(final Level level, final String msg, final Object... params) {
