@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.4.3 - 2024-10-10
+
+* Rollback to fix grpc issue
+
 ## 1.4.2 - 2024-10-10
 
 * Update dependencies: protobuf-java, protobuf-java-util, grpc-netty
