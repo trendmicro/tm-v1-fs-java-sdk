@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.4.4 - 2024-10-11
+
+* Update deoendencies
+* Fix grpc issue for examples
+
 ## 1.4.3 - 2024-10-10
 
 * Rollback to fix grpc issue
