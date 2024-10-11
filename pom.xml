@@ -5,7 +5,7 @@
 
   <groupId>com.trend</groupId>
   <artifactId>file-security-java-sdk</artifactId>
-  <version>1.4.3</version>
+  <version>1.4.4</version>
 
   <name>file-security-java-sdk</name>
   <url>https://github.com/trendmicro/tm-v1-fs-java-sdk</url>
@@ -59,12 +59,12 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.24.2</version>
+      <version>4.28.2</version>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>3.24.2</version>
+      <version>4.28.2</version>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>
@@ -74,22 +74,22 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <version>1.56.0</version>
+      <version>1.68.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
-      <version>1.56.0</version>
+      <version>1.68.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty</artifactId>
-      <version>1.56.0</version>
+      <version>1.68.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-testing</artifactId>
-      <version>1.57.2</version>
+      <version>1.68.0</version>
       <scope>test</scope>
     </dependency>
     <!-- necessary for Java 9+
@@ -121,7 +121,7 @@
                 <goal>run</goal>
               </goals>
               <configuration>
-                <protocArtifact>com.google.protobuf:protoc:3.21.7</protocArtifact>
+                <protocArtifact>com.google.protobuf:protoc:4.28.2</protocArtifact>
                 <inputDirectories>
                   <include>protos</include>
                 </inputDirectories>
@@ -132,7 +132,7 @@
                   </outputTarget>
                   <outputTarget>
                     <type>grpc-java</type>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.56.0</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.68.0</pluginArtifact>
                   </outputTarget>
                 </outputTargets>
               </configuration>
