@@ -162,7 +162,7 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. If host is given, region will be ignored. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`, etc. If host is given, region will be ignored. |
 | host          | The host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service    |
 | apikey        | Your own Vision One API Key.                                                              |
 | timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.         |
@@ -180,7 +180,7 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, etc. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`, etc. |
 | apikey        | Your own Vision One API Key.                                                              |
 | timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.         |
 

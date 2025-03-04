@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.4.5 - 2025-03-03
+
+* Support new region me-central-1
+
 ## 1.4.4 - 2024-10-11
 
 * Update deoendencies
