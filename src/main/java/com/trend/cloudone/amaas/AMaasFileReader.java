@@ -10,9 +10,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * An file type implementation of the AMaasRedaer interface extends from the base implementation.
+ * An file type implementation of the AMaasReader interface extends from the base implementation.
  */
-final class AMaasFileReader extends AMaasBaseReader {
+class AMaasFileReader extends AMaasBaseReader {
     private static final Logger logger = Logger.getLogger(AMaasClient.class.getName());
     private RandomAccessFile randomFile;
     private String fileName;

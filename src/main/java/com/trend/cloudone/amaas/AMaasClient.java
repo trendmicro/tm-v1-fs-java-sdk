@@ -2,6 +2,8 @@ package com.trend.cloudone.amaas;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -22,6 +24,7 @@ import com.google.protobuf.ByteString;
 import com.trend.cloudone.amaas.scan.ScanGrpc;
 import com.trend.cloudone.amaas.scan.ScanOuterClass;
 import com.trend.cloudone.amaas.scan.ScanOuterClass.Stage;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * AMaaS Client connecting to AMaaS gRPC server to provide API for malware scanning services. User can use the API
@@ -393,6 +396,40 @@ public final class AMaasClient {
     */
     public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
         AMaasFileReader fileReader = new AMaasFileReader(fileName, digest);
+        return this.scanRun(fileReader, tagList, pml, feedback, verbose, digest);
+    }
+
+    public String scanS3Object(final String s3Uri) throws AMaasException {
+        return scanS3Object(null, s3Uri);
+    }
+
+    public String scanS3Object(final S3Client s3Client, final String s3Uri) throws AMaasException {
+        return scanS3Object(s3Client, URI.create(s3Uri), null, false, false, false, true);
+    }
+
+
+    public String scanS3Object(final String s3Uri, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        return scanS3Object(null, URI.create(s3Uri), tagList, pml, feedback, verbose, digest);
+    }
+
+    /**
+     *
+     * @param s3Client
+     * @param s3Uri  s3://aag-benchmarking-results/index.html or https://aag-benchmarking-results.s3.ap-southeast-2.amazonaws.com/index.html
+     * @param tagList
+     * @param pml
+     * @param feedback
+     * @param verbose
+     * @param digest
+     * @return
+     * @throws AMaasException
+     */
+    public String scanS3Object(final S3Client s3Client, final String s3Uri, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        return scanS3Object(s3Client, URI.create(s3Uri), tagList, pml, feedback, verbose, digest);
+    }
+
+    public String scanS3Object(final S3Client s3Client, final URI s3Uri, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        final AMaasS3ObjectReader fileReader = new AMaasS3ObjectReader(s3Client, s3Uri, digest);
         return this.scanRun(fileReader, tagList, pml, feedback, verbose, digest);
     }
 
