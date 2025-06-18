@@ -20,6 +20,7 @@ import io.grpc.inprocess.InProcessServerBuilder;
    AMaasScanResultTest.class,
    MalwareItemTest.class,
    AMaasScanResultVerboseTest.class,
+   ProxyConfigTest.class,
 })
 
 

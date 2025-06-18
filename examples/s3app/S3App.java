@@ -66,7 +66,7 @@ public final class S3App {
         optionList.addRequiredOption("a", "awsregion", true, "AWS region");
         optionList.addRequiredOption("b", "bucket", true, "S3 bucket name");
         optionList.addRequiredOption("f", "S3key", true, "S3 key to be scanned");
-        optionList.addRequiredOption("k", "apikey", true, "Cloud One API key");
+        optionList.addRequiredOption("k", "apikey", true, "Vision One API key");
         optionList.addRequiredOption("r", "region", true, "AMaaS service region");
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
         return optionList;
@@ -79,7 +79,7 @@ public final class S3App {
       *                  -b S3 bucket name
       *                  -f S3 key to be scanned
       *                  -k the API key or bearer authentication token
-      *                  -r region where the C1 key/token was applied. eg, us-east-1
+      *                  -r region where the V1 key/token was applied. eg, us-east-1
       *                  -t optional client maximum waiting time in seconds for a scan. 0 or missing means default.
     */
     public static void main(final String[] args) {
@@ -105,10 +105,10 @@ public final class S3App {
                 keyName = cmd.getOptionValue("f");
             }
             if (cmd.hasOption("r")) {
-                apikey = cmd.getOptionValue("r");
+                amaasRegion = cmd.getOptionValue("r");
             }
             if (cmd.hasOption("k")) {
-                amaasRegion = cmd.getOptionValue("k");
+                apikey = cmd.getOptionValue("k");
             }
             if (cmd.hasOption("t")) {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
@@ -117,10 +117,15 @@ public final class S3App {
             byte[] bytes = downloadS3Object(awsRegion, bucketName, keyName);
             info("Completed downloading S3 Object....");
             AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout);
-            long totalStartTs = System.currentTimeMillis();
-            client.scanBuffer(bytes, keyName);
-            long totalEndTs = System.currentTimeMillis();
-            info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            try {
+                long totalStartTs = System.currentTimeMillis();
+                client.scanBuffer(bytes, keyName);
+                long totalEndTs = System.currentTimeMillis();
+                info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            } finally {
+                // Ensure client resources are properly closed
+                client.close();
+            }
         } catch (ParseException err) {
             helper.printHelp("Usage:", optionList);
         } catch (NumberFormatException err) {

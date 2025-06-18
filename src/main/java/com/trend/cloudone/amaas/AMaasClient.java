@@ -2,6 +2,7 @@ package com.trend.cloudone.amaas;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -18,6 +19,14 @@ import io.grpc.stub.CallStreamObserver;
 import io.grpc.StatusRuntimeException;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.SslContext;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.ChannelFactory;
+
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
 import com.google.protobuf.ByteString;
 import com.trend.cloudone.amaas.scan.ScanGrpc;
 import com.trend.cloudone.amaas.scan.ScanOuterClass;
@@ -38,6 +47,7 @@ public final class AMaasClient {
     private AMaasCallCredentials cred;
     private long timeoutSecs = DEFAULT_SCAN_TIMEOUT; // 3 minutes
     private boolean bulk = true;
+    private EventLoopGroup eventLoopGroup;
 
 
      /**
@@ -84,6 +94,10 @@ public final class AMaasClient {
         if (target == null || target == "") {
             throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_INVALID_REGION, region, AMaasRegion.getAllRegionsAsString());
         }
+
+        // Initialize proxy configuration
+        ProxyConfig proxyConfig = new ProxyConfig();
+
         if (enabledTLS) {
             log(Level.FINE, "Using prod grpc service {0}", target);
             String verifyCertEnv = System.getenv("TM_AM_DISABLE_CERT_VERIFY");
@@ -111,14 +125,10 @@ public final class AMaasClient {
                 throw new AMaasException(AMaasErrorCode.MSG_ID_ERR_LOAD_SSL_CERT);
             }
 
-            this.channel = NettyChannelBuilder.forTarget(target)
-                            .sslContext(context)
-                            .build();
+            this.channel = buildChannelWithProxy(target, proxyConfig, true, context);
         } else {
             log(Level.FINE, "Using grpc service with TLS disenabled {0}", target);
-            this.channel = NettyChannelBuilder.forTarget(target)
-                    .usePlaintext()
-                    .build();
+            this.channel = buildChannelWithProxy(target, proxyConfig, false, null);
         }
         if (apiKey != null) {
             this.cred = new AMaasCallCredentials(apiKey, AMaasConstants.V1FS_APP);
@@ -131,13 +141,27 @@ public final class AMaasClient {
         this.asyncStub = ScanGrpc.newStub(this.channel).withCallCredentials(this.cred);
     }
 
+    /**
+     * Close the client and release all resources.
+     * This method should be called when the client is no longer needed.
+     */
+    public void close() {
+        try {
+            if (this.channel != null) {
+                this.channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS);
+            }
+            if (this.eventLoopGroup != null) {
+                this.eventLoopGroup.shutdownGracefully().awaitUninterruptibly(1, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            log(Level.WARNING, "Closing AMaaSClient throws exception: {0}", e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
     @Override
     protected void finalize() {
-        try {
-            this.channel.shutdownNow().awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log(Level.WARNING, "Finalizing AMaaSClient throws exception: {0}", e.getMessage());
-        }
+        close();
     }
 
     private String identifyHostAddr(final String region, final String host) {
@@ -145,6 +169,120 @@ public final class AMaasClient {
             return host;
         }
         return AMaasRegion.getServiceFqdn(region);
+    }
+
+    /**
+     * Builds a ManagedChannel with proxy support if configured.
+     * @param target the target server address
+     * @param proxyConfig the proxy configuration
+     * @param enableTLS whether to enable TLS
+     * @param sslContext the SSL context for TLS connections
+     * @return configured ManagedChannel
+     */
+    private ManagedChannel buildChannelWithProxy(final String target, final ProxyConfig proxyConfig, final boolean enableTLS, final SslContext sslContext) {
+        NettyChannelBuilder builder = NettyChannelBuilder.forTarget(target);
+
+        // Configure TLS
+        if (enableTLS && sslContext != null) {
+            builder.sslContext(sslContext);
+        } else if (!enableTLS) {
+            builder.usePlaintext();
+        }
+
+        // Configure proxy if needed
+        String proxyUrl = proxyConfig.getProxyUrl(target);
+        if (proxyUrl != null) {
+            log(Level.FINE, "Using proxy: {0} for target: {1}", proxyUrl, target);
+            configureProxy(builder, proxyConfig, proxyUrl);
+        } else {
+            log(Level.FINE, "No proxy configured for target: {0}", target);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Configures proxy settings using Netty proxy handlers for SOCKS5 and Java system properties for HTTP.
+     * @param builder the NettyChannelBuilder to configure
+     * @param proxyConfig the proxy configuration
+     * @param proxyUrl the proxy URL to use
+     */
+    private void configureProxy(final NettyChannelBuilder builder, final ProxyConfig proxyConfig, final String proxyUrl) {
+        InetSocketAddress proxyAddress = proxyConfig.getProxyAddress(proxyUrl);
+        if (proxyAddress == null) {
+            log(Level.WARNING, "Failed to parse proxy address: {0}", proxyUrl);
+            return;
+        }
+
+        if (proxyConfig.isSocks5Proxy(proxyUrl)) {
+            // Configure SOCKS5 proxy using Netty handlers
+            log(Level.FINE, "Configuring SOCKS5 proxy: {0}:{1}", proxyAddress.getHostName(), proxyAddress.getPort());
+
+            // Create EventLoopGroup for the channel
+            this.eventLoopGroup = new NioEventLoopGroup(1);
+
+            // Create custom channel factory with SOCKS5 proxy handler
+            ChannelFactory<NioSocketChannel> channelFactory = new ChannelFactory<NioSocketChannel>() {
+                @Override
+                public NioSocketChannel newChannel() {
+                    NioSocketChannel channel = new NioSocketChannel();
+                    // Add SOCKS5 proxy handler at the beginning of the pipeline after channel is active
+                    channel.pipeline().addFirst("socks5-proxy", proxyConfig.hasProxyAuth()
+                        ? new Socks5ProxyHandler(proxyAddress, proxyConfig.getProxyUser(), proxyConfig.getProxyPass())
+                        : new Socks5ProxyHandler(proxyAddress));
+                    return channel;
+                }
+            };
+
+            // Configure the builder with custom settings for SOCKS5
+            builder.channelType(NioSocketChannel.class)
+                   .eventLoopGroup(this.eventLoopGroup)
+                   .channelFactory(channelFactory);
+
+        } else {
+            // Configure HTTP proxy using Java system properties (existing method)
+            log(Level.FINE, "Configuring HTTP proxy: {0}:{1}", proxyAddress.getHostName(), proxyAddress.getPort());
+
+            System.setProperty("http.proxyHost", proxyAddress.getHostName());
+            System.setProperty("http.proxyPort", String.valueOf(proxyAddress.getPort()));
+            System.setProperty("https.proxyHost", proxyAddress.getHostName());
+            System.setProperty("https.proxyPort", String.valueOf(proxyAddress.getPort()));
+
+            // For HTTP proxy with authentication, set authenticator
+            if (proxyConfig.hasProxyAuth()) {
+                log(Level.FINE, "Setting HTTP proxy authentication");
+                setProxyAuthenticator(proxyConfig);
+            }
+        }
+
+        // Set connection timeout for proxy connections
+        final int keepAliveTimeSecs = 30;
+        final int keepAliveTimeoutSecs = 10;
+        final int connectTimeoutMs = 30000; // 30 seconds
+
+        builder.keepAliveTime(keepAliveTimeSecs, TimeUnit.SECONDS);
+        builder.keepAliveTimeout(keepAliveTimeoutSecs, TimeUnit.SECONDS);
+        builder.keepAliveWithoutCalls(true);
+        builder.withOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs);
+    }
+
+    /**
+     * Sets the proxy authenticator for both HTTP and SOCKS5 proxies.
+     * @param proxyConfig the proxy configuration with authentication details
+     */
+    private void setProxyAuthenticator(final ProxyConfig proxyConfig) {
+        java.net.Authenticator.setDefault(new java.net.Authenticator() {
+            @Override
+            protected java.net.PasswordAuthentication getPasswordAuthentication() {
+                if (getRequestorType() == RequestorType.PROXY) {
+                    return new java.net.PasswordAuthentication(
+                        proxyConfig.getProxyUser(),
+                        proxyConfig.getProxyPass().toCharArray()
+                    );
+                }
+                return null;
+            }
+        });
     }
 
     private static void log(final Level level, final String msg, final Object... params) {
@@ -307,8 +445,8 @@ public final class AMaasClient {
         return except;
     }
 
-    /*
-    * Private method to scan a AMaasReader and return the scanned result
+    /**
+    * Scan a AMaasReader and return the scanned result.
     *
     * @param reader AMaasReader to be scanned.
     * @param tagList List of tags.
@@ -319,7 +457,7 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
-    private String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+    public String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
 
         long fileSize = reader.getLength();
 

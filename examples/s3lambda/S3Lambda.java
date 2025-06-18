@@ -108,7 +108,7 @@ public final class S3Lambda implements RequestHandler<Object, String> {
       * It can scan either a specific S3 key or a folder under a S3 bucket.
       *
       * TM_AM_AUTH_KEY the API key or bearer authentication token
-      * TM_AM_REGION region where the C1 key/token was applied. eg, us-east-1
+      * TM_AM_REGION region where the V1 key/token was applied. eg, us-east-1
       * TM_AM_SCAN_TIMEOUT_SECS client maximum waiting time in seconds for a scan. 0 or missing means default.
       *
       * S3_BUCKET_NAME S3 bucket name
@@ -159,11 +159,16 @@ public final class S3Lambda implements RequestHandler<Object, String> {
             }
 
             AMaasClient client = new AMaasClient(region, apikey, timeout);
-            long totalStartTs = System.currentTimeMillis();
+            try {
+                long totalStartTs = System.currentTimeMillis();
 
-            sequentialScan(client, s3client, bucketName, keyList, tagList);
-            long totalEndTs = System.currentTimeMillis();
-            info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+                sequentialScan(client, s3client, bucketName, keyList, tagList);
+                long totalEndTs = System.currentTimeMillis();
+                info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            } finally {
+                // Ensure client resources are properly closed
+                client.close();
+            }
         } catch (Exception err) {
             info("Exception encountered {0}", err);
         }

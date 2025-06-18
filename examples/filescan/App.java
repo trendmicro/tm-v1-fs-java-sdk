@@ -52,7 +52,7 @@ public final class App {
     private static Options getCmdOptions() {
         Options optionList = new Options();
         optionList.addRequiredOption("f", "filename", true, "File path or folder to be scanned");
-        optionList.addRequiredOption("k", "apikey", true, "Cloud One API key");
+        optionList.addRequiredOption("k", "apikey", true, "Vision One API key");
         optionList.addRequiredOption("r", "region", true, "AMaaS service region to used. Ignore if self hosted.");
         optionList.addOption("a", "addr", true, "host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service");
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
@@ -146,13 +146,18 @@ public final class App {
             }
 
             AMaasClient client = new AMaasClient(region, addr, apikey, timeout, true, caCertPath);
-            String[] listOfFiles = listFiles(pathname);
-            long totalStartTs = System.currentTimeMillis();
+            try {
+                String[] listOfFiles = listFiles(pathname);
+                long totalStartTs = System.currentTimeMillis();
 
-            scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose, digest);
+                scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose, digest);
 
-            long totalEndTs = System.currentTimeMillis();
-            info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+                long totalEndTs = System.currentTimeMillis();
+                info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            } finally {
+                // Ensure client resources are properly closed
+                client.close();
+            }
         } catch (ParseException err) {
             helper.printHelp("Usage:", optionList);
         } catch (NumberFormatException err) {

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.5.0 - 2025-06-18
+
+* Supports HTTP and SOCKS5 proxy
+* Add example code `s3stream` for scanning an S3 object as an implementation of `AMaasReader`
+
 ## 1.4.5 - 2025-03-03
 
 * Support new region me-central-1
