@@ -129,7 +129,7 @@ public final class ConcurrentApp {
     private static Options getCmdOptions() {
         Options optionList = new Options();
         optionList.addRequiredOption("f", "filename", true, "File path or folder to be scanned");
-        optionList.addRequiredOption("k", "apikey", true, "Cloud One API key");
+        optionList.addRequiredOption("k", "apikey", true, "Vision One API key");
         optionList.addRequiredOption("r", "region", true, "AMaaS service region");
         optionList.addOption("t", "timeout", true, "Per scan timeout in seconds");
         return optionList;
@@ -167,11 +167,16 @@ public final class ConcurrentApp {
                 timeout = Long.parseLong(cmd.getOptionValue("t"));
             }
             AMaasClient client = new AMaasClient(region, apikey, timeout);
-            String[] listOfFiles = listFiles(pathName);
-            long totalStartTs = System.currentTimeMillis();
-            scanFilesInParallel(client, listOfFiles, timeout);
-            long totalEndTs = System.currentTimeMillis();
-            info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            try {
+                String[] listOfFiles = listFiles(pathName);
+                long totalStartTs = System.currentTimeMillis();
+                scanFilesInParallel(client, listOfFiles, timeout);
+                long totalEndTs = System.currentTimeMillis();
+                info("*************** Total scan time {0}", totalEndTs - totalStartTs);
+            } finally {
+                // Ensure client resources are properly closed
+                client.close();
+            }
         } catch (ParseException err) {
             helper.printHelp("Usage:", optionList);
         } catch (NumberFormatException err) {

@@ -34,6 +34,23 @@ There are 4 examples under the following sub-folders:
 
 3. After a build, the targeted jar(s) will be created under a newly created `target` folder under the respective example folder. For instance, `examples/filescan/target`.
 
+## Important: Resource Management
+
+All examples have been updated to properly manage AMaasClient resources. When using the SDK in your own applications, especially with SOCKS5 proxies, always ensure you call `client.close()` to release network resources:
+
+```java
+AMaasClient client = new AMaasClient("us-east-1", "your-api-key");
+try {
+    // Perform scanning operations
+    String result = client.scanFile("file.txt");
+} finally {
+    // Always close the client to release resources
+    client.close();
+}
+```
+
+**Note:** Failure to properly close the client, particularly when using SOCKS5 proxies, may cause your application to hang as background network threads remain active.
+
 ### Use CLI examples
 
 - `filescan`: This example is to scan a file or a folder sequentially. It takes 4 input options:

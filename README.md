@@ -59,13 +59,17 @@ public static void main(String[] args) {
     try {
         // 1. Create an AMaaS Client object and configure it to carry out the scans in Vision One "us-east-1" region.
         AMaasClient client = new AMaasClient("us-east-1", "your-api-key");
+        try {
+            // 2. Call ScanFile() to scan the content of a file.
+            String scanResult = client.scanFile("path-of-file-to-scan");
 
-        // 2. Call ScanFile() to scan the content of a file.
-        String scanResult = client.scanFile("path-of-file-to-scan");
-
-        if (scanResult != null) {
-            // 3. Print out the JSON response from ScanFile()
-            System.out.println("scan result " + scanResult);
+            if (scanResult != null) {
+                // 3. Print out the JSON response from ScanFile()
+                System.out.println("scan result " + scanResult);
+            }
+        } finally {
+            // 4. Always close the client to release resources
+            client.close();
         }
     } catch (AMaasException err) {
         info("Exception {0}", err.getMessage());
@@ -218,6 +222,26 @@ Scan a file for malware, add a list of tags to the scan result and retrieves res
 **_Return_**
 String the scanned result in JSON format.
 
+#### ```public String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException```
+
+Scan an AMaasReader for malware and retrieves response data from the API. This is the core scanning method that provides the most flexibility by accepting an AMaasReader interface, allowing for different types of data sources.
+
+**_Parameters_**
+
+| Parameter     | Description                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| reader        | `AMaasReader` to be scanned. This can be an `AMaasFileReader` or any custom implementation you develop to support your specific data sources. |
+| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters. |
+| pml           | A flag to indicate whether to use predictive machine learning detection.                 |
+| feedback      | A flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback. |
+| verbose       | A flag to enable log verbose mode.                                                       |
+| digest        | A flag to enable calculation of digests for cache search and result lookup.              |
+
+**_Return_**
+String the scanned result in JSON format.
+
+**_Note_**: For an example of implementing a custom AMaasReader, please refer to the `examples/s3stream/S3Stream.java` code which demonstrates a streaming implementation of the AMaasReader interface.
+
 #### ```public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException```
 
 Scan a buffer for malware and retrieves response data from the API.
@@ -360,3 +384,72 @@ The File Security SDK consistently adopts TLS as the default communication chann
 For customers who need to enable TLS channel encryption without verifying the provided CA certificate, the `TM_AM_DISABLE_CERT_VERIFY` environment variable can be set. However, this option is only recommended for use in testing environments.
 
 When `TM_AM_DISABLE_CERT_VERIFY` is set to `1`, certificate verification is disabled. By default, the certificate will be verified.
+
+## Proxy Configuration
+
+The File Security Java SDK supports HTTP and SOCKS5 proxy configurations through environment variables. This allows the SDK to work in enterprise environments that require proxy servers for internet access.
+
+### Supported Environment Variables
+
+| Environment Variable | Required/Optional | Description                                                                                                                                                     |
+| -------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HTTP_PROXY`         | Optional          | HTTP proxy URL for HTTP connections (e.g., `http://proxy.example.com:8080`)                                                                                    |
+| `HTTPS_PROXY`        | Optional          | Proxy URL for HTTPS connections (e.g., `https://proxy.example.com:8443` or `socks5://socks.example.com:1080`)                                                 |
+| `NO_PROXY`           | Optional          | Comma-separated list of host names to bypass proxy (e.g., `localhost,127.0.0.1,*.local`). Use `*` to bypass proxy for all hosts                              |
+| `PROXY_USER`         | Optional          | Username for proxy authentication (used with `Proxy-Authorization` header)                                                                                     |
+| `PROXY_PASS`         | Optional          | Password for proxy authentication (used only when `PROXY_USER` is configured)                                                                                  |
+
+### Proxy Configuration Examples
+
+#### Basic HTTP Proxy
+```bash
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+```
+
+#### SOCKS5 Proxy
+```bash
+export HTTPS_PROXY=socks5://socks-proxy.company.com:1080
+```
+
+**Important:** When using SOCKS5 proxy, ensure you call `client.close()` to properly release network resources. The SDK creates background threads for SOCKS5 connections that must be explicitly closed.
+
+```java
+AMaasClient client = new AMaasClient("us-east-1", "your-api-key");
+try {
+    // Perform scanning operations
+    String result = client.scanFile("file.txt");
+} finally {
+    // Always close the client when using SOCKS5 proxy
+    client.close();
+}
+```
+
+#### Proxy with Authentication
+```bash
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=https://secure-proxy.company.com:8443
+export PROXY_USER=username
+export PROXY_PASS=password
+```
+
+#### Bypassing Proxy for Specific Hosts
+```bash
+export HTTP_PROXY=http://proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1,*.internal.company.com
+```
+
+#### Disabling Proxy for All Connections
+```bash
+export NO_PROXY=*
+```
+
+### Notes
+
+- The SDK automatically detects and uses proxy settings from environment variables
+- For HTTPS connections, `HTTPS_PROXY` takes precedence over `HTTP_PROXY`
+- SOCKS5 proxies are supported by specifying `socks5://` in the proxy URL
+- Proxy authentication requires both `PROXY_USER` and `PROXY_PASS` to be set
+- The `NO_PROXY` variable supports wildcards (e.g., `*.local`) and exact matches
+- No code changes are required - simply set the appropriate environment variables before running your application
+- **Resource Management:** Always call `client.close()` when finished, especially when using SOCKS5 proxies, to ensure proper cleanup of network resources and prevent applications from hanging
