@@ -18,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
+import com.trend.cloudone.amaas.AMaasScanOptions;
 
 public final class S3Lambda implements RequestHandler<Object, String> {
     private static final Logger logger = Logger.getLogger(S3Lambda.class.getName());
@@ -87,12 +88,15 @@ public final class S3Lambda implements RequestHandler<Object, String> {
                 byte[] bytes = downloadS3Object(s3client, bucketName, keyName);
                 long startTs = System.currentTimeMillis();
                 info("===============> Scanning S3 key {0}", keyName);
-                String scanResult = "";
-                if (tagList == null) {
-                    scanResult = client.scanBuffer(bytes, keyName);
-                } else {
-                    scanResult = client.scanBuffer(bytes, keyName, tagList, false, false);
-                }
+                AMaasScanOptions options = AMaasScanOptions.builder()
+                        .pml(false) // Predictive Machine Learning detection
+                        .feedback(false) // Smart Feedback
+                        .verbose(false) // Verbose mode
+                        .activeContent(false) // Active content scanning
+                        .tagList(tagList)
+                        .build();
+
+                String scanResult = client.scanBuffer(bytes, bucketName, true, options);
                 long endTs = System.currentTimeMillis();
                 info("===============> scanResult {0}, scanTime {1}.", scanResult, endTs - startTs);
             } catch (S3Exception err) {

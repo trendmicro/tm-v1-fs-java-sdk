@@ -11,6 +11,7 @@ import org.apache.commons.cli.ParseException;
 
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
+import com.trend.cloudone.amaas.AMaasScanOptions;
 
 
 public final class App {
@@ -34,12 +35,13 @@ public final class App {
             .collect(Collectors.toList()).toArray(new String[] {});
     }
 
-    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final String[] tagList, final boolean pmlFlag, final boolean feedbackFlag, final boolean verbose, final boolean digest) {
+    static void scanFilesInSequential(final AMaasClient client, final String[] fList, final boolean digest, final AMaasScanOptions options) {
         for (String fileName: fList) {
             try {
                 info("===============> Scanning file {0}", fileName);
                 long startTS = System.currentTimeMillis();
-                String scanResult = client.scanFile(fileName, tagList, pmlFlag, feedbackFlag, verbose, digest);
+
+                String scanResult = client.scanFile(fileName, digest, options);
                 long endTS = System.currentTimeMillis();
                 info("{0}", scanResult);
                 info("===============> File scan time {0}", endTS - startTS);
@@ -62,6 +64,7 @@ public final class App {
         optionList.addOption("v", "verbose", true, "Enable log verbose mode");
         optionList.addOption(null, "ca_cert", true, "CA Certificate of hosted AMaaS Scanner server");
         optionList.addOption(null, "digest", true, "Enable/Disable calculation of digests for cache search and result lookup");
+        optionList.addOption(null, "active_content", true, "Enable active content scanning. Default to false");
         return optionList;
     }
 
@@ -79,6 +82,7 @@ public final class App {
      *                  -v enable log verbose mode. default to false
      *                  --ca_cert CA certificate of self hosted AMaaS server
      *                  --digest Enable/Disable calculation of digests for cache search and result lookup
+     *                  --active_content Enable active content scanning. Default to false
      */
     public static void main(final String[] args) {
         String pathname = "";
@@ -92,6 +96,7 @@ public final class App {
         boolean verbose = false;
         String caCertPath = null;
         boolean digest = true;
+        boolean activeContent = false;
 
         DefaultParser parser = new DefaultParser();
         HelpFormatter helper = new HelpFormatter();
@@ -139,6 +144,13 @@ public final class App {
                     digest = false;
                 }
             }
+
+            if (cmd.hasOption("active_content")) {
+                if (cmd.getOptionValue("active_content").equals("true")) {
+                    activeContent = true;
+                }
+            }
+
             String[] tagList = null;
             if (tags != null) {
                 info("tags to used {0}", tags);
@@ -149,8 +161,15 @@ public final class App {
             try {
                 String[] listOfFiles = listFiles(pathname);
                 long totalStartTs = System.currentTimeMillis();
+                AMaasScanOptions options = AMaasScanOptions.builder()
+                        .pml(pmlFlag)
+                        .feedback(feedbackFlag)
+                        .verbose(verbose)
+                        .tagList(tagList)
+                        .activeContent(activeContent)
+                        .build();
 
-                scanFilesInSequential(client, listOfFiles, tagList, pmlFlag, feedbackFlag, verbose, digest);
+                scanFilesInSequential(client, listOfFiles, digest, options);
 
                 long totalEndTs = System.currentTimeMillis();
                 info("*************** Total scan time {0}", totalEndTs - totalStartTs);
