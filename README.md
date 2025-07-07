@@ -47,28 +47,40 @@ You can manage these keys from the Trend Vision One API Keys Page.
 Using File Security Java SDK to scan for malware involves the following basic steps:
 
 1. Creating an AMaaS Client object by specifying preferred Vision One region where scanning should be done and a valid API key.
-2. Invoking file scan or buffer scan method to scan the target data.
-3. Parsing the JSON response returned by the scan APIs to determine whether the scanned data contains malware or not.
+2. Configuring scan options using the `AMaasScanOptions` class with the builder pattern.
+3. Invoking file scan or buffer scan method to scan the target data.
+4. Parsing the JSON response returned by the scan APIs to determine whether the scanned data contains malware or not.
 
 ### Sample Code
 
 ```java
-import com.trend.fs.AMaasClient;
+import com.trend.cloudone.amaas.AMaasClient;
+import com.trend.cloudone.amaas.AMaasScanOptions;
+import com.trend.cloudone.amaas.AMaasException;
 
 public static void main(String[] args) {
     try {
         // 1. Create an AMaaS Client object and configure it to carry out the scans in Vision One "us-east-1" region.
         AMaasClient client = new AMaasClient("us-east-1", "your-api-key");
         try {
-            // 2. Call ScanFile() to scan the content of a file.
-            String scanResult = client.scanFile("path-of-file-to-scan");
+            // 2. Configure scan options using the builder pattern
+            AMaasScanOptions options = AMaasScanOptions.builder()
+                .pml(true)                    // Enable predictive machine learning
+                .feedback(true)               // Enable Smart Feedback
+                .verbose(false)               // Disable verbose logging
+                .activeContent(false)         // Disable active content scanning
+                .tagList(new String[]{"tag1", "tag2"})  // Optional tags
+                .build();
+
+            // 3. Call scanFile() to scan the content of a file
+            String scanResult = client.scanFile("path-of-file-to-scan", true, options);
 
             if (scanResult != null) {
-                // 3. Print out the JSON response from ScanFile()
+                // 4. Print out the JSON response from scanFile()
                 System.out.println("scan result " + scanResult);
             }
         } finally {
-            // 4. Always close the client to release resources
+            // 5. Always close the client to release resources
             client.close();
         }
     } catch (AMaasException err) {
@@ -99,6 +111,15 @@ public static void main(String[] args) {
 ```
 
 When malicious content is detected in the scanned object, `scanResult` will show a non-zero value. Otherwise, the value will be `null`. Moreover, when malware is detected, `foundMalwares` will be non-empty containing one or more name/value pairs of `fileName` and `malwareName`. `fileName` will be filename of malware detected while `malwareName` will be the name of the virus/malware found.
+
+### Enable Active Content Detection
+
+Enables active content detection for scanning operations. This feature allows the scanner to detect potentially malicious active content within files, specifically:
+
+- **PDF scripts**: Detects embedded JavaScript and other scripting content in PDF files
+- **Office macros**: Detects VBA macros and other executable content in Microsoft Office documents
+
+When active content is detected, the scan result will include a type field with values of either `macro` or `script` to indicate the type of active content found.
 
 #### Verbose Format
 
@@ -191,38 +212,7 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 **_Return_**
 An AmaasClient instance
 
-#### ```public String scanFile(final String fileName) throws AMaasException```
-
-Scan a file for malware and retrieves response data from the API.
-
-**_Parameters_**
-
-| Parameter     | Description                                                                              |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| fileName      | The name of the file with path of directory containing the file to scan.                 |
-
-**_Return_**
-String the scanned result in JSON format.
-
-#### ```public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException```
-
-Scan a file for malware, add a list of tags to the scan result and retrieves response data from the API.
-
-**_Parameters_**
-
-| Parameter     | Description                                                                              |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| fileName      | The name of the file with path of directory containing the file to scan.                 |
-| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters.                                  |
-| pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
-| feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
-| verbose       | A flag to enable log verbose mode.                                                       |
-| digest        | A flag to enable/disable calculation of digests for cache search and result lookup.      |
-
-**_Return_**
-String the scanned result in JSON format.
-
-#### ```public String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException```
+#### ```public String scanRun(final AMaasReader reader, final AMaasScanOptions options) throws AMaasException```
 
 Scan an AMaasReader for malware and retrieves response data from the API. This is the core scanning method that provides the most flexibility by accepting an AMaasReader interface, allowing for different types of data sources.
 
@@ -231,18 +221,29 @@ Scan an AMaasReader for malware and retrieves response data from the API. This i
 | Parameter     | Description                                                                              |
 | ------------- | ---------------------------------------------------------------------------------------- |
 | reader        | `AMaasReader` to be scanned. This can be an `AMaasFileReader` or any custom implementation you develop to support your specific data sources. |
-| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with the maximum length of 63 characters. |
-| pml           | A flag to indicate whether to use predictive machine learning detection.                 |
-| feedback      | A flag to indicate whether to use Trend Micro Smart Protection Network's Smart Feedback. |
-| verbose       | A flag to enable log verbose mode.                                                       |
-| digest        | A flag to enable calculation of digests for cache search and result lookup.              |
+| options       | Scan options containing configuration for the scan operation (PML, feedback, verbose, activeContent, tags). |
 
 **_Return_**
 String the scanned result in JSON format.
 
 **_Note_**: For an example of implementing a custom AMaasReader, please refer to the `examples/s3stream/S3Stream.java` code which demonstrates a streaming implementation of the AMaasReader interface.
 
-#### ```public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException```
+#### ```public String scanFile(final String fileName, final boolean digest, final AMaasScanOptions options) throws AMaasException```
+
+Scan a file for malware and retrieves response data from the API.
+
+**_Parameters_**
+
+| Parameter     | Description                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| fileName      | The name of the file with path of directory containing the file to scan.                 |
+| digest        | A flag to enable/disable calculation of digests for cache search and result lookup.      |
+| options       | Scan options containing configuration for the scan operation (PML, feedback, verbose, activeContent, tags). |
+
+**_Return_**
+String the scanned result in JSON format.
+
+#### ```public String scanBuffer(final byte[] buffer, final String identifier, final boolean digest, final AMaasScanOptions options) throws AMaasException```
 
 Scan a buffer for malware and retrieves response data from the API.
 
@@ -252,28 +253,54 @@ Scan a buffer for malware and retrieves response data from the API.
 | ------------- | ----------------------------------------------------------------------------------------- |
 | buffer        | The byte buffer to scan.                                                                  |
 | identifier    | A unique name to identify the buffer.                                                     |
-
-**_Return_**
-String the scanned result in JSON format.
-
-#### ```public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose) throws AMaasException```
-
-Scan a buffer for malware, add a list of tags to the scan result, and retrieves response data from the API.
-
-**_Parameters_**
-
-| Parameter     | Description                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| buffer        | The byte buffer to scan.                                                                  |
-| identifier    | A unique name to identify the buffer.                                                     |
-| tagList       | A list of strings to be used to tag the scan result. At most 8 tags with maximum length of 63 characters.                                     |
-| pml           | A flag to indicate whether to enable predictive machine learning detection.                  |
-| feedback      | A flag to indicate whether to enable Trend Micro Smart Protection Network's Smart Feedback.  |
-| verbose       | A flag to enable log verbose mode.                                                        |
 | digest        | A flag to enable/disable calculation of digests for cache search and result lookup.       |
+| options       | Scan options containing configuration for the scan operation (PML, feedback, verbose, activeContent, tags). |
 
 **_Return_**
 String the scanned result in JSON format.
+
+---
+
+### ```AMaasScanOptions```
+
+The AMaasScanOptions class provides a convenient way to configure scan parameters using the builder pattern. This class encapsulates all scan-related configuration options.
+
+#### Creating Scan Options
+
+```java
+// Create scan options with default values (all flags disabled, no tags)
+AMaasScanOptions defaultOptions = AMaasScanOptions.builder().build();
+
+// Create scan options with specific configuration
+AMaasScanOptions customOptions = AMaasScanOptions.builder()
+    .pml(true)                              // Enable predictive machine learning
+    .feedback(true)                         // Enable Smart Feedback
+    .verbose(false)                         // Disable verbose logging
+    .activeContent(true)                    // Enable active content scanning
+    .tagList(new String[]{"tag1", "tag2"})  // Add custom tags
+    .build();
+```
+
+**_Builder Methods_**
+
+| Method        | Parameter | Description                                                                              |
+| ------------- | --------- | ---------------------------------------------------------------------------------------- |
+| `pml(boolean)` | pml      | Enable or disable predictive machine learning detection. Default: false.                |
+| `feedback(boolean)` | feedback | Enable or disable Trend Micro Smart Protection Network's Smart Feedback. Default: false. |
+| `verbose(boolean)` | verbose  | Enable or disable verbose logging mode. Default: false.                                 |
+| `activeContent(boolean)` | activeContent | Enable or disable active content scanning. Default: false.            |
+| `tagList(String[])` | tagList | Set the list of tags for the scan. At most 8 tags with maximum length of 63 characters. Default: null. |
+| `build()`     | -         | Build and return the AMaasScanOptions instance.                                         |
+
+**_Getter Methods_**
+
+| Method                | Return Type | Description                                                     |
+| --------------------- | ----------- | --------------------------------------------------------------- |
+| `isPml()`             | boolean     | Returns true if PML detection is enabled.                      |
+| `isFeedback()`        | boolean     | Returns true if Smart Feedback is enabled.                     |
+| `isVerbose()`         | boolean     | Returns true if verbose mode is enabled.                       |
+| `isActiveContent()`   | boolean     | Returns true if active content scanning is enabled.            |
+| `getTagList()`        | String[]    | Returns the array of tags, or null if no tags are set.         |
 
 ---
 

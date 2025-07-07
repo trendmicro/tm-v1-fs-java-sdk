@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
+
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
@@ -457,7 +458,31 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanRun(final AMaasReader reader, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        AMaasScanOptions options = AMaasScanOptions.builder()
+            .tagList(tagList)
+            .pml(pml)
+            .feedback(feedback)
+            .verbose(verbose)
+            .build();
+        return this.scanRun(reader, options);
+    }
+
+    /**
+     * Scan a AMaasReader and return the scanned result.
+     *
+     * @param reader AMaasReader to be scanned.
+     * @param options scan options containing configuration for the scan operation.
+     * @return String the scanned result in JSON format.
+     * @throws AMaasException if an exception is detected, it will convert to AMassException.
+     */
+    public String scanRun(final AMaasReader reader, final AMaasScanOptions options) throws AMaasException {
+        boolean pml = options.isPml();
+        boolean feedback = options.isFeedback();
+        boolean verbose = options.isVerbose();
+        boolean activeContent = options.isActiveContent();
+        String[] tagList = options.getTagList();
 
         long fileSize = reader.getLength();
 
@@ -471,7 +496,20 @@ public final class AMaasClient {
         String sha256Str = reader.getHash(AMaasReader.HashType.HASH_SHA256);
         log(Level.FINE, "sha1={0} sha256={1}", sha1Str, sha256Str);
 
-        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_INIT).setFileName(reader.getIdentifier()).setRsSize(fileSize).setOffset(0).setFileSha1(sha1Str).setFileSha256(sha256Str).setTrendx(pml).setSpnFeedback(feedback).setBulk(this.bulk).setVerbose(verbose);
+        ScanOuterClass.C2S.Builder builder = ScanOuterClass.C2S
+            .newBuilder()
+            .setStage(Stage.STAGE_INIT)
+            .setFileName(reader.getIdentifier())
+            .setRsSize(fileSize)
+            .setOffset(0)
+            .setFileSha1(sha1Str)
+            .setFileSha256(sha256Str)
+            .setTrendx(pml)
+            .setSpnFeedback(feedback)
+            .setBulk(this.bulk)
+            .setVerbose(verbose)
+            .setActiveContent(activeContent);
+
         if (tagList != null) {
             AMaasException except = getTagListErrors(tagList);
             if (except != null) {
@@ -486,7 +524,6 @@ public final class AMaasClient {
         String scanResult = serverCallback.waitTilExit();
 
         return scanResult;
-
     }
 
     /**
@@ -496,6 +533,7 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanFile(final String fileName) throws AMaasException {
         return this.scanFile(fileName, null, false, false, false, true);
     }
@@ -513,8 +551,7 @@ public final class AMaasClient {
     */
     @Deprecated
     public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
-        AMaasFileReader fileReader = new AMaasFileReader(fileName, true);
-        return this.scanRun(fileReader, tagList, pml, feedback, false, true);
+        return this.scanFile(fileName, tagList, pml, feedback, false, true);
     }
 
     /**
@@ -529,9 +566,29 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanFile(final String fileName, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
+        AMaasScanOptions options = AMaasScanOptions.builder()
+            .tagList(tagList)
+            .pml(pml)
+            .feedback(feedback)
+            .verbose(verbose)
+            .build();
+        return this.scanFile(fileName, digest, options);
+    }
+
+    /**
+     * Scan a file and return the scanned result.
+     *
+     * @param fileName Full path of a file to be scanned.
+     * @param digest flag to enable calculation of digests for cache search and result lookup.
+     * @param options scan options containing configuration for the scan operation.
+     * @return String the scanned result in JSON format.
+     * @throws AMaasException if an exception is detected, it will convert to AMassException.
+     */
+    public String scanFile(final String fileName, final boolean digest, final AMaasScanOptions options) throws AMaasException {
         AMaasFileReader fileReader = new AMaasFileReader(fileName, digest);
-        return this.scanRun(fileReader, tagList, pml, feedback, verbose, digest);
+        return this.scanRun(fileReader, options);
     }
 
     /**
@@ -542,6 +599,7 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanBuffer(final byte[] buffer, final String identifier) throws AMaasException {
         return this.scanBuffer(buffer, identifier, null, false, false, false, true);
     }
@@ -560,8 +618,7 @@ public final class AMaasClient {
     */
     @Deprecated
     public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback) throws AMaasException {
-        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier, true);
-        return this.scanRun(bufReader, tagList, pml, feedback, false, true);
+        return this.scanBuffer(buffer, identifier, tagList, pml, feedback, false, true);
     }
 
     /**
@@ -577,8 +634,30 @@ public final class AMaasClient {
     * @return String the scanned result in JSON format.
     * @throws AMaasException if an exception is detected, it will convert to AMassException.
     */
+    @Deprecated
     public String scanBuffer(final byte[] buffer, final String identifier, final String[] tagList, final boolean pml, final boolean feedback, final boolean verbose, final boolean digest) throws AMaasException {
-        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier, digest);
-        return this.scanRun(bufReader, tagList, pml, feedback, verbose, digest);
+        AMaasScanOptions options = AMaasScanOptions.builder()
+            .tagList(tagList)
+            .pml(pml)
+            .feedback(feedback)
+            .verbose(verbose)
+            .build();
+        return this.scanBuffer(buffer, identifier, digest, options);
     }
+
+    /**
+     * Scan a buffer and return the scanned result.
+     *
+     * @param buffer the buffer to be scanned.
+     * @param identifier A unique name to identify the buffer.
+     * @param digest flag to enable calculation of digests for cache search and result lookup.
+     * @param options scan options containing configuration for the scan operation.
+     * @return String the scanned result in JSON format.
+     * @throws AMaasException if an exception is detected, it will convert to AMassException.
+     */
+    public String scanBuffer(final byte[] buffer, final String identifier, final boolean digest, final AMaasScanOptions options) throws AMaasException {
+        AMaasBufferReader bufReader = new AMaasBufferReader(buffer, identifier, digest);
+        return this.scanRun(bufReader, options);
+    }
+
 }

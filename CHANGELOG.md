@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.6.0 - 2025-06-30
+
+* Support active content detection
+* Add `AMaasScanOptions` to support customizable scan options.
+
 ## 1.5.0 - 2025-06-18
 
 * Supports HTTP and SOCKS5 proxy

@@ -17,6 +17,7 @@ import software.amazon.awssdk.core.ResponseInputStream;
 
 import com.trend.cloudone.amaas.AMaasClient;
 import com.trend.cloudone.amaas.AMaasException;
+import com.trend.cloudone.amaas.AMaasScanOptions;
 
 public final class S3App {
     private static final Logger logger = Logger.getLogger(S3App.class.getName());
@@ -119,7 +120,14 @@ public final class S3App {
             AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout);
             try {
                 long totalStartTs = System.currentTimeMillis();
-                client.scanBuffer(bytes, keyName);
+                AMaasScanOptions options = AMaasScanOptions.builder()
+                        .pml(true) // Predictive Machine Learning detection
+                        .feedback(true) // Smart Feedback
+                        .verbose(false) // Verbose mode
+                        .activeContent(true) // Active content scanning
+                        .build();
+
+                client.scanBuffer(bytes, keyName, true, options);
                 long totalEndTs = System.currentTimeMillis();
                 info("*************** Total scan time {0}", totalEndTs - totalStartTs);
             } finally {

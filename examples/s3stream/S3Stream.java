@@ -1,5 +1,3 @@
-package com.trend.cloudone.amaas;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
@@ -19,7 +17,11 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
-import com.trend.cloudone.amaas.AMaasReader.HashType;
+import com.trend.cloudone.amaas.AMaasReader;
+import com.trend.cloudone.amaas.AMaasClient;
+import com.trend.cloudone.amaas.AMaasException;
+import com.trend.cloudone.amaas.AMaasScanOptions;
+import com.trend.cloudone.amaas.AMaasErrorCode;
 
 /**
  * S3Stream class implements the AMaasReader interface for S3 objects.
@@ -241,9 +243,14 @@ public class S3Stream implements AMaasReader {
             AMaasClient client = new AMaasClient(amaasRegion, apikey, timeout);
             try {
                 long totalStartTs = System.currentTimeMillis();
-
+                AMaasScanOptions options = AMaasScanOptions.builder()
+                        .pml(true) // Predictive Machine Learning detection
+                        .feedback(true) // Smart Feedback
+                        .verbose(false) // Verbose mode
+                        .activeContent(true) // Active content scanning
+                        .build();
                 // Use scanRun with the S3Stream AMaasReader
-                String scanResult = client.scanRun(s3Stream, null, false, false, false, true);
+                String scanResult = client.scanRun(s3Stream, options);
                 long totalEndTs = System.currentTimeMillis();
                 info("Scan Result: {0}", scanResult);
                 info("*************** Total scan time {0}", totalEndTs - totalStartTs);
