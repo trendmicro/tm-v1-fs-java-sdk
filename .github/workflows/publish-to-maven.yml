@@ -26,20 +26,10 @@ jobs:
         gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
         gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-    # Setup Envvar for build
-    - name: Set env
-      run: |
-        if [[ "${{ github.ref }}" == "refs/tags/v"* ]]; 
-        then 
-            echo "PACK_CMD=deploy" >> $GITHUB_ENV
-        else
-            echo "PACK_CMD=package" >> $GITHUB_ENV
-        fi
-
     # package and optionally publish Java SDK to Maven Central
     - name: Package and optionally deploy with Maven
       run: |
-        mvn -B clean ${{env.PACK_CMD}}
+        mvn -B clean deploy
       env:
         MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
