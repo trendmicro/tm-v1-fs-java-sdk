@@ -190,6 +190,24 @@ public final class AMaasClient {
             builder.usePlaintext();
         }
 
+        final int keepAliveTimeSecs = 60;
+        final int keepAliveTimeoutSecs = 5;
+        final int connectTimeoutMs = 30000;
+
+        builder
+            .keepAliveTime(keepAliveTimeSecs, TimeUnit.SECONDS)
+            .keepAliveTimeout(keepAliveTimeoutSecs, TimeUnit.SECONDS)
+            .keepAliveWithoutCalls(true) // Keep connection alive even when idle
+            .withOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs);
+
+        log(
+            Level.FINE,
+            "Configured keep-alive: time={0}s, timeout={1}s, connectTimeout={2}ms",
+            keepAliveTimeSecs,
+            keepAliveTimeoutSecs,
+            connectTimeoutMs
+        );
+
         // Configure proxy if needed
         String proxyUrl = proxyConfig.getProxyUrl(target);
         if (proxyUrl != null) {
@@ -255,16 +273,6 @@ public final class AMaasClient {
                 setProxyAuthenticator(proxyConfig);
             }
         }
-
-        // Set connection timeout for proxy connections
-        final int keepAliveTimeSecs = 30;
-        final int keepAliveTimeoutSecs = 10;
-        final int connectTimeoutMs = 30000; // 30 seconds
-
-        builder.keepAliveTime(keepAliveTimeSecs, TimeUnit.SECONDS);
-        builder.keepAliveTimeout(keepAliveTimeoutSecs, TimeUnit.SECONDS);
-        builder.keepAliveWithoutCalls(true);
-        builder.withOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs);
     }
 
     /**

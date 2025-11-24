@@ -1,5 +1,5 @@
 # Build stage
-FROM openjdk:8-jdk-bullseye@sha256:c25fa22ba2961758802ea63bc4622999a305086405d9d03b065925da00cb8bb6 as build_env
+FROM eclipse-temurin:8-jdk@sha256:3b1808f3745f1bbbb3611a4f774a0a8940af9de318f1d725e49e2ea8fbc176e6 as build_env
 
 ARG BUILD_VERSION
 ARG PACK_CMD=package
@@ -9,7 +9,7 @@ RUN useradd -m su-amaas
 # Dependencies
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	maven=3.6.3-5 \
+	maven \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
 
