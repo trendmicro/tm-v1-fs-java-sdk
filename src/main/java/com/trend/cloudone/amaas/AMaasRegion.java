@@ -38,7 +38,7 @@ final class AMaasRegion {
 
     static final List<String> C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION, C1_TREND_REGION});
     static final List<String> V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_CA_REGION, AWS_DE_REGION, AWS_GB_REGION, AWS_IN_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_AE_REGION});
-    static final List<String> SUPPORTED_V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_IN_REGION, AWS_AE_REGION});
+    static final List<String> SUPPORTED_V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_IN_REGION, AWS_AE_REGION, AWS_CA_REGION, AWS_GB_REGION});
     static final List<String> SUPPORTED_C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION});
 
     static final Map<String, String> V1_TO_C1_REGION_MAPPING = new HashMap<String, String>() {
@@ -50,6 +50,8 @@ final class AMaasRegion {
             put(AWS_SG_REGION, C1_SG_REGION);
             put(AWS_US_REGION, C1_US_REGION);
             put(AWS_AE_REGION, C1_AE_REGION);
+            put(AWS_CA_REGION, C1_CA_REGION);
+            put(AWS_GB_REGION, C1_GB_REGION);
         }
     };
 

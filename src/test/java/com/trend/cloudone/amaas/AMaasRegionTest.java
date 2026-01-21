@@ -16,6 +16,12 @@ public class AMaasRegionTest {
 
         region = AMaasRegion.getServiceFqdn("me-central-1");
         assertEquals("antimalware.ae-1.cloudone.trendmicro.com", region);
+
+        region = AMaasRegion.getServiceFqdn("ca-central-1");
+        assertEquals("antimalware.ca-1.cloudone.trendmicro.com", region);
+
+        region = AMaasRegion.getServiceFqdn("eu-west-2");
+        assertEquals("antimalware.gb-1.cloudone.trendmicro.com", region);
     }
 
 
