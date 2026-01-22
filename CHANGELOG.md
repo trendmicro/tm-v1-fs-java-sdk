@@ -1,8 +1,12 @@
 # CHANGELOG
 
-## 1.6.1 - 2026-01-19
+## 1.6.2 - 2026-01-19
 
 - Support new regions eu-west-2 and ca-central-1
+
+## 1.6.1 - 2025-11-24
+
+- Enhance netty connection option
 
 ## 1.6.0 - 2025-06-30
 
