@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.6.3 - 2026-04-13
+
+- Support new regions af-south-1
+- Fix timeout issue
+
 ## 1.6.2 - 2026-01-19
 
 - Support new regions eu-west-2 and ca-central-1

@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -24,11 +25,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class AMaasClientTest {
     private static final int TIMEOUT_SEC = 5000;
     private static final int BUFF_LENGTH = 64;
+    private static final int HEARTBEAT_INTERVAL_MS = 50;
+    private static final int HEARTBEAT_FAST_INTERVAL_MS = 10;
+    private static final int HEARTBEAT_WAIT_MS = 250;
+    private static final int HEARTBEAT_SHORT_WAIT_MS = 80;
+    private static final int HEARTBEAT_STOP_WAIT_MS = 150;
+    private static final int HEARTBEAT_MIN_EXPECTED = 3;
+    private static final int DATA_MSG_COUNT = 20;
+    private static final int DATA_MSG_DELAY_MS = 5;
+    private static final byte[] TEST_DATA = new byte[]{1, 2, 3};
     private final MutableHandlerRegistry serviceRegistry = new MutableHandlerRegistry();
     private ScanGrpc.ScanStub client;
     private Gson gson;
@@ -233,6 +245,113 @@ public class AMaasClientTest {
         taglist = new String[]{space64};
         err = AMaasClient.getTagListErrors(taglist);
         assertEquals(err.getErrorCode(), AMaasErrorCode.MSG_ID_ERR_LENGTH_OF_TAG);
+    }
+
+    // Heartbeat tests
+
+    private StreamObserver<ScanOuterClass.C2S> createRecordingObserver(final List<ScanOuterClass.C2S> recorded) {
+        return new StreamObserver<ScanOuterClass.C2S>() {
+            @Override
+            public void onNext(final ScanOuterClass.C2S value) {
+                recorded.add(value);
+            }
+
+            @Override
+            public void onError(final Throwable t) {
+            }
+
+            @Override
+            public void onCompleted() {
+            }
+        };
+    }
+
+    @Test
+    public void testHeartbeatSendsHeartbeats() throws Exception {
+        AMaasClient.AMaasServerCallback callback = new AMaasClient.AMaasServerCallback();
+        callback.setHeartbeatIntervalMs(HEARTBEAT_INTERVAL_MS);
+
+        List<ScanOuterClass.C2S> recorded = new CopyOnWriteArrayList<>();
+        StreamObserver<ScanOuterClass.C2S> mockObserver = createRecordingObserver(recorded);
+
+        AMaasBufferReader reader = new AMaasBufferReader(TEST_DATA, "test_heartbeat", true);
+        callback.setContext(mockObserver, reader, false, TIMEOUT_SEC);
+        callback.startHeartbeat();
+
+        Thread.sleep(HEARTBEAT_WAIT_MS);
+
+        callback.stopHeartbeat();
+
+        long heartbeatCount = recorded.stream()
+            .filter(msg -> msg.getStage() == Stage.STAGE_HEARTBEAT)
+            .count();
+
+        assertTrue("Expected at least 3 heartbeats, got " + heartbeatCount,
+            heartbeatCount >= HEARTBEAT_MIN_EXPECTED);
+    }
+
+    @Test
+    public void testHeartbeatStopsAfterStop() throws Exception {
+        AMaasClient.AMaasServerCallback callback = new AMaasClient.AMaasServerCallback();
+        callback.setHeartbeatIntervalMs(HEARTBEAT_INTERVAL_MS);
+
+        List<ScanOuterClass.C2S> recorded = new CopyOnWriteArrayList<>();
+        StreamObserver<ScanOuterClass.C2S> mockObserver = createRecordingObserver(recorded);
+
+        AMaasBufferReader reader = new AMaasBufferReader(TEST_DATA, "test_heartbeat_stop", true);
+        callback.setContext(mockObserver, reader, false, TIMEOUT_SEC);
+        callback.startHeartbeat();
+
+        Thread.sleep(HEARTBEAT_SHORT_WAIT_MS);
+
+        callback.stopHeartbeat();
+
+        long heartbeatCountBeforeStop = recorded.stream()
+            .filter(msg -> msg.getStage() == Stage.STAGE_HEARTBEAT)
+            .count();
+        assertTrue("Expected at least 1 heartbeat before stop, got " + heartbeatCountBeforeStop,
+            heartbeatCountBeforeStop > 0);
+
+        int sizeAfterStop = recorded.size();
+        Thread.sleep(HEARTBEAT_STOP_WAIT_MS);
+
+        assertEquals("No new messages should arrive after stopHeartbeat",
+            sizeAfterStop, recorded.size());
+    }
+
+    @Test
+    public void testHeartbeatDataAndHeartbeatCoexist() throws Exception {
+        AMaasClient.AMaasServerCallback callback = new AMaasClient.AMaasServerCallback();
+        callback.setHeartbeatIntervalMs(HEARTBEAT_FAST_INTERVAL_MS);
+
+        List<ScanOuterClass.C2S> recorded = new CopyOnWriteArrayList<>();
+        StreamObserver<ScanOuterClass.C2S> mockObserver = createRecordingObserver(recorded);
+
+        AMaasBufferReader reader = new AMaasBufferReader(TEST_DATA, "test_coexist", true);
+        callback.setContext(mockObserver, reader, false, TIMEOUT_SEC);
+        callback.startHeartbeat();
+
+        for (int i = 0; i < DATA_MSG_COUNT; i++) {
+            ScanOuterClass.C2S dataMsg = ScanOuterClass.C2S.newBuilder()
+                .setStage(Stage.STAGE_RUN)
+                .setOffset(i)
+                .build();
+            mockObserver.onNext(dataMsg);
+            Thread.sleep(DATA_MSG_DELAY_MS);
+        }
+
+        callback.stopHeartbeat();
+
+        long dataCount = recorded.stream()
+            .filter(msg -> msg.getStage() == Stage.STAGE_RUN)
+            .count();
+        long heartbeatCount = recorded.stream()
+            .filter(msg -> msg.getStage() == Stage.STAGE_HEARTBEAT)
+            .count();
+
+        assertEquals(DATA_MSG_COUNT, (int) dataCount);
+        assertTrue("Expected at least 1 heartbeat during data sends, got " + heartbeatCount,
+            heartbeatCount > 0);
     }
 }
 

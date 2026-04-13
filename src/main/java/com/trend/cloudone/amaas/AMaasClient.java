@@ -6,6 +6,8 @@ import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -304,6 +306,7 @@ public final class AMaasClient {
      */
     static class AMaasServerCallback implements StreamObserver<ScanOuterClass.S2C> {
         private static final int POLL_TIME_MILLIS = 200;
+        static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
         private StreamObserver<ScanOuterClass.C2S> requestObserver;
         private AMaasReader reader;
@@ -316,8 +319,55 @@ public final class AMaasClient {
         private boolean bulk = true;
         private long start = System.currentTimeMillis();
         private long timeoutSecs;
+        private final Object streamLock = new Object();
+        private volatile boolean streamClosed = false;
+        private ScheduledExecutorService heartbeatExecutor = null;
+        private int heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS;
 
         AMaasServerCallback() {
+        }
+
+        void setHeartbeatIntervalMs(final int intervalMs) {
+            this.heartbeatIntervalMs = intervalMs;
+        }
+
+        protected void startHeartbeat() {
+            heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(new java.util.concurrent.ThreadFactory() {
+                @Override
+                public Thread newThread(final Runnable r) {
+                    Thread t = new Thread(r, "amaas-heartbeat");
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
+            heartbeatExecutor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    if (streamClosed) {
+                        return;
+                    }
+                    ScanOuterClass.C2S hb = ScanOuterClass.C2S.newBuilder()
+                        .setStage(Stage.STAGE_HEARTBEAT)
+                        .build();
+                    synchronized (streamLock) {
+                        if (!streamClosed) {
+                            try {
+                                requestObserver.onNext(hb);
+                                log(Level.FINE, "Sent heartbeat");
+                            } catch (Exception e) {
+                                log(Level.WARNING, "Heartbeat send failed: {0}", e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }, heartbeatIntervalMs, heartbeatIntervalMs, TimeUnit.MILLISECONDS);
+        }
+
+        protected void stopHeartbeat() {
+            if (heartbeatExecutor != null) {
+                heartbeatExecutor.shutdownNow();
+                heartbeatExecutor = null;
+            }
         }
 
         private AMaasException processError() {
@@ -363,7 +413,13 @@ public final class AMaasClient {
                 case CMD_RETR:
                     if (s2cMsg.getStage() != Stage.STAGE_RUN) {
                         log(Level.INFO, "Received unexpected command RETR at stage {0}", s2cMsg.getStage());
-                        requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                        synchronized (streamLock) {
+                            if (!streamClosed) {
+                                streamClosed = true;
+                                requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                            }
+                        }
+                        return;
                     }
                     java.util.List<java.lang.Integer> bulkLength;
                     java.util.List<java.lang.Integer> bulkOffset;
@@ -401,30 +457,55 @@ public final class AMaasClient {
 
                                 if (TimeUnit.MILLISECONDS.toSeconds(duration) > this.timeoutSecs) {
                                     log(Level.INFO, "DEADLINE_EXCEEDED {0}", duration);
-                                    requestObserver.onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+                                    synchronized (streamLock) {
+                                        if (!streamClosed) {
+                                            streamClosed = true;
+                                            requestObserver.onError(new StatusRuntimeException(Status.DEADLINE_EXCEEDED));
+                                        }
+                                    }
                                     return;
                                 }
                             }
-                            requestObserver.onNext(request);
+                            synchronized (streamLock) {
+                                if (!streamClosed) {
+                                    requestObserver.onNext(request);
+                                }
+                            }
                         } catch (IOException e) {
                             log(Level.SEVERE, "Exception when processing server message", e.getMessage());
-                            requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                            synchronized (streamLock) {
+                                if (!streamClosed) {
+                                    streamClosed = true;
+                                    requestObserver.onError(new StatusRuntimeException(Status.ABORTED));
+                                }
+                            }
                         }
                     }
                     break;
                 case CMD_QUIT:
                     this.scanResult = s2cMsg.getResult();
                     log(Level.INFO, "Scan succeeded: result={0} fetchCount={1} fetchSize={2}.", this.scanResult, this.fetchCount, this.fetchSize);
-                    requestObserver.onCompleted();
+                    synchronized (streamLock) {
+                        streamClosed = true;
+                        requestObserver.onCompleted();
+                    }
                     break;
                 default:
                     log(Level.WARNING, "Unknown command");
-                    requestObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+                    synchronized (streamLock) {
+                        if (!streamClosed) {
+                            streamClosed = true;
+                            requestObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+                        }
+                    }
             }
         }
 
         @Override
         public void onError(final Throwable t) {
+            synchronized (streamLock) {
+                streamClosed = true;
+            }
             log(Level.WARNING, "scan Failed: {0}", Status.fromThrowable(t));
             this.done = true;
             this.grpcStatus = Status.fromThrowable(t).getCode();
@@ -433,6 +514,9 @@ public final class AMaasClient {
 
         @Override
         public void onCompleted() {
+            synchronized (streamLock) {
+                streamClosed = true;
+            }
             log(Level.INFO, "File successfully scanned.");
             this.done = true;
             this.grpcStatus = Status.Code.OK;
@@ -528,10 +612,13 @@ public final class AMaasClient {
         ScanOuterClass.C2S request = builder.build();
 
         requestObserver.onNext(request);
+        serverCallback.startHeartbeat();
 
-        String scanResult = serverCallback.waitTilExit();
-
-        return scanResult;
+        try {
+            return serverCallback.waitTilExit();
+        } finally {
+            serverCallback.stopHeartbeat();
+        }
     }
 
     /**
