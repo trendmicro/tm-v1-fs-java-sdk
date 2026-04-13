@@ -133,10 +133,14 @@ public final class MockScanServicer extends ScanGrpc.ScanImplBase {
 
             @Override
             public void onNext(final C2S request) {
+                if (request.getStage() == Stage.STAGE_HEARTBEAT) {
+                    return;
+                }
                 S2C resp = processRequest(request);
                 if (resp == null) {
                     Status status = Status.INTERNAL;
                     responseObserver.onError(status.asRuntimeException());
+                    return;
                 }
                 responseObserver.onNext(resp);
             }

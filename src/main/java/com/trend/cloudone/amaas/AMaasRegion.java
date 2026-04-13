@@ -25,6 +25,7 @@ final class AMaasRegion {
     static final String AWS_TREND_REGION = "us-east-2";
     static final String AWS_GB_REGION    = "eu-west-2";
     static final String AWS_AE_REGION    = "me-central-1";
+    static final String AWS_ZA_REGION    = "af-south-1";
     static final String C1_JP_REGION     = "jp-1";
     static final String C1_SG_REGION     = "sg-1";
     static final String C1_AU_REGION     = "au-1";
@@ -35,11 +36,12 @@ final class AMaasRegion {
     static final String C1_TREND_REGION  = "trend-us-1";
     static final String C1_GB_REGION     = "gb-1";
     static final String C1_AE_REGION     = "ae-1";
+    static final String C1_ZA_REGION     = "za-1";
 
-    static final List<String> C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION, C1_TREND_REGION});
-    static final List<String> V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_CA_REGION, AWS_DE_REGION, AWS_GB_REGION, AWS_IN_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_AE_REGION});
-    static final List<String> SUPPORTED_V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_IN_REGION, AWS_AE_REGION, AWS_CA_REGION, AWS_GB_REGION});
-    static final List<String> SUPPORTED_C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION});
+    static final List<String> C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION, C1_TREND_REGION, C1_ZA_REGION});
+    static final List<String> V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_CA_REGION, AWS_DE_REGION, AWS_GB_REGION, AWS_IN_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_AE_REGION, AWS_ZA_REGION});
+    static final List<String> SUPPORTED_V1_REGIONS = Arrays.asList(new String[]{AWS_AU_REGION, AWS_DE_REGION, AWS_JP_REGION, AWS_SG_REGION, AWS_US_REGION, AWS_IN_REGION, AWS_AE_REGION, AWS_CA_REGION, AWS_GB_REGION, AWS_ZA_REGION});
+    static final List<String> SUPPORTED_C1_REGIONS = Arrays.asList(new String[]{C1_AU_REGION, C1_CA_REGION, C1_DE_REGION, C1_GB_REGION, C1_IN_REGION, C1_JP_REGION, C1_SG_REGION, C1_US_REGION, C1_ZA_REGION});
 
     static final Map<String, String> V1_TO_C1_REGION_MAPPING = new HashMap<String, String>() {
         {
@@ -52,6 +54,7 @@ final class AMaasRegion {
             put(AWS_AE_REGION, C1_AE_REGION);
             put(AWS_CA_REGION, C1_CA_REGION);
             put(AWS_GB_REGION, C1_GB_REGION);
+            put(AWS_ZA_REGION, C1_ZA_REGION);
         }
     };
 
@@ -67,6 +70,7 @@ final class AMaasRegion {
             put(C1_CA_REGION, "antimalware.ca-1.cloudone.trendmicro.com");
             put(C1_TREND_REGION, "antimalware.trend-us-1.cloudone.trendmicro.com");
             put(C1_AE_REGION, "antimalware.ae-1.cloudone.trendmicro.com");
+            put(C1_ZA_REGION, "antimalware.za-1.cloudone.trendmicro.com");
         }
     };
 
