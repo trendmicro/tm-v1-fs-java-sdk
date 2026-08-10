@@ -6,7 +6,7 @@
 
   <groupId>com.trend</groupId>
   <artifactId>file-security-java-sdk</artifactId>
-  <version>1.6.3</version>
+  <version>1.6.4</version>
 
   <name>file-security-java-sdk</name>
   <url>https://github.com/trendmicro/tm-v1-fs-java-sdk</url>
@@ -96,7 +96,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.2.9.Final</version>
+      <version>4.2.15.Final</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.6.4 - 2026-08-10
+
+- Support new region ap-southeast-3 (Indonesia)
+- Support scan gateway for FSCS and FSVA
+- Add an Error Handling section to the README documenting SDK and service error codes and messages
+- Fix CVE-2026-46340 and CVE-2026-33871
+
 ## 1.6.3 - 2026-04-13
 
 - Support new regions af-south-1

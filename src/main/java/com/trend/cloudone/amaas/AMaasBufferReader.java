@@ -35,12 +35,20 @@ final class AMaasBufferReader extends AMaasBaseReader {
         return this.identifier;
     }
 
-    public int readBytes(final int offset, final byte[] buf) throws IOException {
-        int chunkLength = buf.length;
-        if (chunkLength + offset > this.readerBuf.length) {
-            chunkLength = this.readerBuf.length - offset;
+    public int readBytes(final long offset, final byte[] buf) throws IOException {
+        // The in-memory buffer is backed by a Java array, which is indexed by int, so a buffer larger than Integer.MAX_VALUE bytes (~2GiB)
+        // is not representable here. Casting to int is safe for this implementation; only the on-disk file reader (AMaasFileReader) needs
+        // the full long range. In normal operation the scan engine never requests an offset beyond the declared buffer length,
+        // so offset always fits in int.
+        if (offset < 0 || offset > this.readerBuf.length) {
+            throw new IOException("offset out of range for buffer reader: " + offset + " (buffer length " + this.readerBuf.length + ")");
         }
-        System.arraycopy(readerBuf, offset, buf, 0, chunkLength);
+        int intOffset = (int) offset;
+        int chunkLength = buf.length;
+        if (chunkLength + intOffset > this.readerBuf.length) {
+            chunkLength = this.readerBuf.length - intOffset;
+        }
+        System.arraycopy(readerBuf, intOffset, buf, 0, chunkLength);
         return chunkLength;
     }
 }

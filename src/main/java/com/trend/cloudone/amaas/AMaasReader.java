@@ -34,7 +34,7 @@ public interface AMaasReader {
      * @param buff byte array to be filled with reader's content.
      * @return number of bytes read into the buffer.
      */
-    int readBytes(int offset, byte[] buff) throws IOException;
+    int readBytes(long offset, byte[] buff) throws IOException;
 
     /**
      * Method to return the hashes as a Hex string for the content read by the reader.

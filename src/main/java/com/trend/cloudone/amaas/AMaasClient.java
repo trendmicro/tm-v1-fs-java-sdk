@@ -422,7 +422,7 @@ public final class AMaasClient {
                         return;
                     }
                     java.util.List<java.lang.Integer> bulkLength;
-                    java.util.List<java.lang.Integer> bulkOffset;
+                    java.util.List<java.lang.Long> bulkOffset;
                     if (this.bulk) {
                         log(Level.FINE, "enter bulk mode");
                         int bulkCount = s2cMsg.getBulkLengthCount();
@@ -433,17 +433,17 @@ public final class AMaasClient {
                         bulkOffset = s2cMsg.getBulkOffsetList();
                     } else {
                         bulkLength = Arrays.asList(new Integer[]{s2cMsg.getLength()});
-                        bulkOffset = Arrays.asList(new Integer[]{s2cMsg.getOffset()});
+                        bulkOffset = Arrays.asList(new Long[]{s2cMsg.getOffset()});
                     }
                     for (int i = 0; i < bulkLength.size(); i++) {
-                        log(Level.INFO, "Bulk read length={0} at offset={1}", bulkLength.get(i).intValue(), bulkOffset.get(i).intValue());
+                        log(Level.INFO, "Bulk read length={0} at offset={1}", bulkLength.get(i).intValue(), bulkOffset.get(i).longValue());
                         byte[] bytes = new byte[bulkLength.get(i).intValue()];
                         try {
-                            int rtnLength = reader.readBytes(bulkOffset.get(i).intValue(), bytes);
+                            int rtnLength = reader.readBytes(bulkOffset.get(i).longValue(), bytes);
                             ByteString bytestr = ByteString.copyFrom(bytes);
                             this.fetchCount++;
                             this.fetchSize += rtnLength;
-                            ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_RUN).setChunk(bytestr).setOffset(bulkOffset.get(i).intValue()).build();
+                            ScanOuterClass.C2S request = ScanOuterClass.C2S.newBuilder().setStage(Stage.STAGE_RUN).setChunk(bytestr).setOffset(bulkOffset.get(i).longValue()).build();
 
                             while (!callObserver.isReady()) {
                                 try {
