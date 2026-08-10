@@ -187,7 +187,7 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                                                                                                                                                                                                                                 |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`,`eu-west-2`,`ca-central-1`,`af-south-1`, etc. If host is given, region will be ignored. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`,`eu-west-2`,`ca-central-1`,`af-south-1`,`ap-southeast-3`, etc. If host is given, region will be ignored. |
 | host          | The host ip address of self hosted AMaaS scanner. Ignore if to use Trend AMaaS service                                                                                                                                                                                                      |
 | apikey        | Your own Vision One API Key.                                                                                                                                                                                                                                                                |
 | timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.                                                                                                                                                                                |
@@ -205,7 +205,7 @@ Creates a new instance of the `AmaasClient` class, and provisions essential sett
 
 | Parameter     | Description                                                                                                                                                                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`,`eu-west-2`,`ca-central-1`,`af-south-1` ,etc. |
+| region        | The region you obtained your api key. Value provided must be one of the Vision One regions, e.g. `us-east-1`, `eu-central-1`, `ap-northeast-1`, `ap-southeast-2`, `ap-southeast-1`, `ap-south-1`, `me-central-1`,`eu-west-2`,`ca-central-1`,`af-south-1`,`ap-southeast-3` ,etc. |
 | apikey        | Your own Vision One API Key.                                                                                                                                                                                                                      |
 | timeoutInSecs | Timeout to cancel the connection to server in seconds. Valid value is 0, 1, 2, ... ; default to 300 seconds.                                                                                                                                      |
 
@@ -367,7 +367,7 @@ public class AMaasScanResultVerbose {
 
 ### `AMaasException`
 
-The AMaasException class is the AMaaS SDK exception class.
+The AMaasException class is the AMaaS SDK exception class. Every checked error the SDK raises — whether detected locally or relayed from the gRPC server — is thrown as an `AMaasException` carrying an `AMaasErrorCode`. See [Error Handling](#error-handling) below for the full reference of what callers actually receive.
 
 ```java
 public final class AMaasException extends Exception {
@@ -381,19 +381,51 @@ public final class AMaasException extends Exception {
 
 ---
 
-### `AMaasErrorCode`
+## Error Handling
 
-AMaasErrorCode is a enum type containing all the error conditions thrown by the `AMaasException` class. The error conditions are as follows:
+Every checked error raised by the SDK is thrown as an `AMaasException`. Call `getErrorCode()` to get the associated `AMaasErrorCode` enum value, and `getMessage()` (inherited from `Exception`) to get the fully-formatted message text.
 
-| Enum Type                       | Error Message Templates                                | Description                                                                                                                                                        |
-| ------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| MSG_ID_ERR_INVALID_REGION       | %s is not a supported region.                          | The region code provided to the AMaasClient constructor is not a valid region.                                                                                     |
-| MSG_ID_ERR_MISSING_AUTH         | Must provide an API key to use the client.             | The API Key provided to the AMaasClient constructor cannot be empty or `null`.                                                                                     |
-| MSG_ID_ERR_KEY_AUTH_FAILED      | You are not authenticated. Invalid C1 token or Api Key | The API key is invalid. Please make sure a correct Vision One Api key is used.                                                                                     |
-| MSG_ID_ERR_FILE_NOT_FOUND       | Failed to open file. No such file or directory %s.     | The given file cannot be found. Please make sure the file exists.                                                                                                  |
-| MSG_ID_ERR_FILE_NO_PERMISSION   | Failed to open file. Permission denied to open %s.     | There is a file access permission issue. Please make sure the SDK has read permission to the file.                                                                 |
-| MSG_ID_GRPC_ERROR               | Received gRPC status code: %d, msg: %s.                | gRpc error was reported with the status code. For details, please refer to published [gRPC Status Codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) |
-| MSG_ID_ERR_UNEXPECTED_INTERRUPT | Unexpected interrupt encountered.                      | An unexpected interrupt signal was received at the client.                                                                                                         |
+```java
+try {
+    result = client.scanFile(fileName, tags);
+} catch (AMaasException e) {
+    System.out.println("code: " + e.getErrorCode() + ", message: " + e.getMessage());
+}
+```
+
+The **Source** column classifies each error:
+
+- **SDK-native** — detected and formatted entirely on the client (bad region, missing key, file I/O, tag validation, TLS setup).
+- **SDK-mapped** — triggered by a gRPC response from the service, but the caller-visible message is produced by the SDK.
+- **Service** — a message produced by the service and relayed unchanged. **This SDK has no such rows** — it never forwards the service's message text, only the gRPC status code (see below).
+
+For gRPC errors, the SDK only forwards the **numeric status code and the code's own name** (via [`io.grpc.Status.Code`](https://grpc.github.io/grpc/java/io/grpc/Status.Code.html)) — it does **not** forward the service's descriptive message text, except for `UNAUTHENTICATED`, where it substitutes a fixed message of its own. See note 1 below.
+
+| AMaasErrorCode | Message returned to the caller | Cause | Source |
+|----------------|---------------------------------|-------|--------|
+| `MSG_ID_ERR_INVALID_REGION` | `<region> is not a supported region, region value should be one of <list>` | The `region` passed to the `AMaasClient` constructor is not a recognized Vision One region | SDK-native |
+| `MSG_ID_ERR_MISSING_AUTH` | `Must provide an API key to use the client.` | No API key was supplied to the `AMaasClient` constructor | SDK-native |
+| `MSG_ID_ERR_LOAD_SSL_CERT` | `Failed to load SSL certificate.` | The client's TLS trust material (default certificate, or the custom `caCertPath`) could not be loaded | SDK-native |
+| `MSG_ID_ERR_FILE_NOT_FOUND` | `Failed to open file. No such file or directory <path>.` | The file passed to `scanFile()` / `AMaasFileReader` does not exist, or could not be opened | SDK-native |
+| `MSG_ID_ERR_FILE_NO_PERMISSION` | `Failed to open file. Permission denied to open <path>.` | The SDK process does not have read permission on the file | SDK-native |
+| `MSG_ID_ERR_MAX_NUMBER_OF_TAGS` | `Exceeded maximum number of tags: 8` | More than 8 tags were passed to `scanFile()` / `scanBuffer()` / `scanRun()` | SDK-native |
+| `MSG_ID_ERR_LENGTH_OF_TAG` | `Tag length must be between 1 and 63: <tag>.` | A tag is `null`, empty, or longer than 63 characters | SDK-native |
+| `MSG_ID_ERR_UNEXPECTED_INTERRUPT` | `Unexpected interrupt encountered.` | The calling thread was interrupted while waiting for the scan to finish | SDK-native |
+| `MSG_ID_ERR_KEY_AUTH_FAILED` | `Authorization key cannot be authenticated.` | The service returned gRPC `UNAUTHENTICATED` (16) — no/invalid API key, or (per the service) the account lacks file-scan permission. The SDK always substitutes this one message for `UNAUTHENTICATED`; the service's more specific reason is not exposed to the caller. | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 3, msg: INVALID_ARGUMENT.` | Service reported `INVALID_ARGUMENT` (3) — too many tags, a tag too long or empty, illegal characters in `cloudAccountId`, or a malformed SHA1/SHA256 computed by the SDK | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 5, msg: NOT_FOUND.` | Service reported `NOT_FOUND` (5) — customer ID not found | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 7, msg: PERMISSION_DENIED.` | Service reported `PERMISSION_DENIED` (7) — the SDK feature is not enabled for the account | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 8, msg: RESOURCE_EXHAUSTED.` | Service reported `RESOURCE_EXHAUSTED` (8) — hourly scan quota exceeded, file exceeds the maximum allowed size, or scan resource could not be allocated | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 9, msg: FAILED_PRECONDITION.` | Service reported `FAILED_PRECONDITION` (9) — incorrect protocol stage reported by the SDK | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 12, msg: UNIMPLEMENTED.` | Service reported `UNIMPLEMENTED` (12) — Predictive Machine Learning (PML) requested but not supported | SDK-mapped |
+| `MSG_ID_GRPC_ERROR` | `Received gRPC status code: 13, msg: INTERNAL.` | Service reported `INTERNAL` (13) — metadata retrieval failure, network connection error, generic internal error, missing preamble information, or unclear scan result | SDK-mapped |
+
+**Notes**
+
+1. For `MSG_ID_GRPC_ERROR`, the caller sees only the gRPC status code's number and its symbolic name (e.g. `INTERNAL`), **not** the service's descriptive text. Because several distinct service-side conditions share one gRPC code (the Cause column lists the known ones), they are indistinguishable from the exception message alone. Those service strings are not exposed through the Java SDK.
+2. Service-side conditions and their code assignments are owned by the File Security service and may change independently of the SDK; this table reflects the catalog current at the time of writing.
+3. Engine findings such as `ATSE_*` codes are **not** errors — they are returned inside the scan result payload (see [Sample JSON Response](#sample-json-response)), not as a gRPC status.
+4. `MSG_ID_ERR_UNEXPECTED` is defined on `AMaasErrorCode` but is not currently thrown anywhere in the SDK; it is reserved for future use.
 
 ## Thread Safety
 

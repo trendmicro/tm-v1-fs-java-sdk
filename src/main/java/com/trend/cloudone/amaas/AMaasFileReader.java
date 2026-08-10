@@ -75,7 +75,13 @@ final class AMaasFileReader extends AMaasBaseReader {
         return this.fileSize;
     }
 
-    public int readBytes(final int offset, final byte[] buff) throws IOException {
+    public int readBytes(final long offset, final byte[] buff) throws IOException {
+        // RandomAccessFile.seek already rejects a negative offset and reads past EOF return -1, so this check is not
+        // strictly required for safety. It is kept for fail-fast symmetry with AMaasBufferReader and to surface a
+        // clearer message if the scan engine ever requests an offset outside the declared file size.
+        if (offset < 0 || offset > this.fileSize) {
+            throw new IOException("offset out of range for file reader: " + offset + " (file size " + this.fileSize + ")");
+        }
         this.randomFile.seek(offset);
         return this.randomFile.read(buff);
     }

@@ -99,7 +99,7 @@ public class S3Stream implements AMaasReader {
      * @throws IOException if read fails
      */
     @Override
-    public int readBytes(final int offset, final byte[] buff) throws IOException {
+    public int readBytes(final long offset, final byte[] buff) throws IOException {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(buff);
         return readByteRange(offset, byteBuffer);
     }
