@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.6.5 - 2026-11-03
+
+- Update netty to 4.2.18.Final to fix CVEs
+
 ## 1.6.4 - 2026-08-10
 
 - Support new region ap-southeast-3 (Indonesia)
